@@ -2,6 +2,14 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, FileText, ChevronDown, ChevronUp, TrendingUp } from 'lucide-react'
 import { getTreinos, saveTreinos } from '../store'
+import type { Sessao } from '../types'
+
+function fmtDia(s: Sessao) {
+  const d = new Date(s.data)
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  return `${s.dia.slice(0, 3)}, ${dd}/${mm}`
+}
 
 export default function Exercicio() {
   const { id, exId } = useParams<{ id: string; exId: string }>()
@@ -104,7 +112,7 @@ export default function Exercicio() {
                   {/* Header da sessão */}
                   <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
                     <div>
-                      <p className="text-sm font-bold text-white">Semana {sessao.semana} · {sessao.dia}</p>
+                      <p className="text-sm font-bold text-white">Semana {sessao.semana} · {fmtDia(sessao)}</p>
                     </div>
                     {diff !== null && (
                       <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${diff > 0 ? 'bg-green-500/15 text-green-400' : diff < 0 ? 'bg-red-500/15 text-red-400' : 'bg-white/5 text-white/30'}`}>

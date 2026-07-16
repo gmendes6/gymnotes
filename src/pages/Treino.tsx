@@ -77,6 +77,13 @@ export default function Treino() {
 
   const sessoesSorted = [...treino.sessoes].sort((a, b) => b.semana - a.semana || b.data.localeCompare(a.data))
 
+  function fmtDia(sessao: Sessao) {
+    const d = new Date(sessao.data)
+    const dd = String(d.getDate()).padStart(2, '0')
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    return `${sessao.dia.slice(0, 3)}, ${dd}/${mm}`
+  }
+
   return (
     <div className="flex flex-col min-h-dvh max-w-md mx-auto">
       <header className="sticky top-0 z-10 bg-[#0f0f0f]/95 backdrop-blur px-4 pt-10 pb-4 border-b border-white/5">
@@ -85,7 +92,7 @@ export default function Treino() {
         </button>
         <h1 className="text-xl font-bold leading-tight">{treino.nome}</h1>
         <p className="text-sm text-white/40 mt-0.5">
-          {treino.exercicios.length} exercício{treino.exercicios.length !== 1 ? 's' : ''} · {treino.sessoes.length} sessão{treino.sessoes.length !== 1 ? 'ões' : ''}
+          {treino.exercicios.length} exercício{treino.exercicios.length !== 1 ? 's' : ''} · {treino.sessoes.length} sess{treino.sessoes.length !== 1 ? 'ões' : 'ão'}
         </p>
       </header>
 
@@ -152,7 +159,7 @@ export default function Treino() {
                   <CalendarDays size={13} className="text-white/40" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-white text-sm">Semana {s.semana} · {s.dia}</p>
+                  <p className="font-semibold text-white text-sm">Semana {s.semana} · {fmtDia(s)}</p>
                   <p className="text-xs text-white/35 mt-0.5">
                     {s.registros.reduce((n, r) => n + r.series.length, 0)} séries registradas
                   </p>

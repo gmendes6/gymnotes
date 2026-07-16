@@ -2,6 +2,14 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Plus, Trash2, ChevronDown, ChevronUp, Check } from 'lucide-react'
 import { getTreinos, saveTreinos, uid } from '../store'
+import type { Sessao as SessaoType } from '../types'
+
+function fmtDia(s: SessaoType) {
+  const d = new Date(s.data)
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  return `${s.dia.slice(0, 3)}, ${dd}/${mm}`
+}
 
 export default function Sessao() {
   const { id, sessaoId } = useParams<{ id: string; sessaoId: string }>()
@@ -44,7 +52,7 @@ export default function Sessao() {
         <button onClick={() => nav(`/treino/${id}`)} className="flex items-center gap-1 text-white/50 text-sm mb-3 -ml-1">
           <ArrowLeft size={16} /> {treino.nome}
         </button>
-        <h1 className="text-xl font-bold">Semana {sessao.semana} · {sessao.dia}</h1>
+        <h1 className="text-xl font-bold">Semana {sessao.semana} · {fmtDia(sessao)}</h1>
         <p className="text-sm text-white/40 mt-0.5">{totalSeries} série{totalSeries !== 1 ? 's' : ''} registrada{totalSeries !== 1 ? 's' : ''}</p>
       </header>
 
