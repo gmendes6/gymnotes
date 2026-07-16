@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Plus, ChevronRight, ChevronDown, ChevronUp, Trash2, Dumbbell, CalendarDays, Pencil } from 'lucide-react'
 import { getTreinos, saveTreinos, uid } from '../store'
 import type { Sessao, Exercicio } from '../types'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 const DIAS_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
@@ -44,9 +45,16 @@ export default function Treino() {
   const [editNome, setEditNome] = useState('')
   const [editDesc, setEditDesc] = useState('')
 
+  // confirm dialog
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null)
+
+  function ask(message: string, onConfirm: () => void) {
+    setConfirmDialog({ message, onConfirm })
+  }
+
   // Lock body scroll on iOS when any modal is open
   useEffect(() => {
-    const open = showSessaoForm || showExForm || !!editSessao || !!editEx
+    const open = showSessaoForm || showExForm || !!editSessao || !!editEx || !!confirmDialog
     if (!open) return
     const y = window.scrollY
     document.body.style.cssText = `position:fixed;top:-${y}px;width:100%;overflow:hidden;`
@@ -71,12 +79,13 @@ export default function Treino() {
 
   function deleteExercicio(exId: string, e: React.MouseEvent) {
     e.stopPropagation()
-    if (!confirm('Excluir exercício?')) return
-    treino!.exercicios = treino!.exercicios.filter(e => e.id !== exId)
-    treino!.sessoes = treino!.sessoes.map(s => ({
-      ...s, registros: s.registros.filter(r => r.exercicioId !== exId)
-    }))
-    save()
+    ask('Excluir este exercício e todos os seus registros?', () => {
+      treino!.exercicios = treino!.exercicios.filter(e => e.id !== exId)
+      treino!.sessoes = treino!.sessoes.map(s => ({
+        ...s, registros: s.registros.filter(r => r.exercicioId !== exId)
+      }))
+      save()
+    })
   }
 
   function openEditEx(ex: Exercicio, e: React.MouseEvent) {
@@ -112,9 +121,10 @@ export default function Treino() {
 
   function deleteSessao(sId: string, e: React.MouseEvent) {
     e.stopPropagation()
-    if (!confirm('Excluir sessão?')) return
-    treino!.sessoes = treino!.sessoes.filter(s => s.id !== sId)
-    save()
+    ask('Excluir esta sessão e todos os registros?', () => {
+      treino!.sessoes = treino!.sessoes.filter(s => s.id !== sId)
+      save()
+    })
   }
 
   function openEditSessao(s: Sessao, e: React.MouseEvent) {
@@ -387,6 +397,16 @@ export default function Treino() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Confirm dialog */}
+      {confirmDialog && (
+        <ConfirmDialog
+          message={confirmDialog.message}
+          onConfirm={() => { confirmDialog.onConfirm(); setConfirmDialog(null) }}
+          onCancel={() => setConfirmDialog(null)}
+          confirmLabel="Excluir"
+        />
       )}
 
       {/* FAB */}
