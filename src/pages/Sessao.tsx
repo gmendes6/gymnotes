@@ -33,8 +33,6 @@ export default function Sessao() {
   const sessao = treino?.sessoes.find(s => s.id === sessaoId)
   if (!treino || !sessao) { nav(`/treino/${id}`); return null }
 
-  function save() { saveTreinos(treinos); setTreinos([...treinos]) }
-
   function changeQtd(n: number) {
     setQtd(n)
     setInputs(prev => {
@@ -67,23 +65,30 @@ export default function Sessao() {
   }
 
   function addSeries(exId: string) {
-    let reg = sessao!.registros.find(r => r.exercicioId === exId)
-    if (!reg) {
-      reg = { exercicioId: exId, series: [] }
-      sessao!.registros.push(reg)
-    }
-    let novas
-    if (mesmaCarga) {
-      const valid = inputs.filter(r => r.reps).map(r => ({ id: uid(), carga: Number(cargaUnica), reps: Number(r.reps), obs: buildObs(obs.trim()) }))
-      if (!cargaUnica || valid.length === 0) return
-      novas = valid
-    } else {
-      const valid = inputs.filter(r => r.carga && r.reps)
-      if (valid.length === 0) return
-      novas = valid.map(r => ({ id: uid(), carga: Number(r.carga), reps: Number(r.reps), obs: buildObs(obs.trim()) }))
-    }
-    reg.series = [...reg.series, ...novas]
-    save()
+    const novas = mesmaCarga
+      ? inputs.filter(r => r.reps).map(r => ({ id: uid(), carga: Number(cargaUnica), reps: Number(r.reps), obs: buildObs(obs.trim()) }))
+      : inputs.filter(r => r.carga && r.reps).map(r => ({ id: uid(), carga: Number(r.carga), reps: Number(r.reps), obs: buildObs(obs.trim()) }))
+
+    if (novas.length === 0) return
+    if (mesmaCarga && !cargaUnica) return
+
+    const updated = treinos.map(t => {
+      if (t.id !== id) return t
+      return {
+        ...t,
+        sessoes: t.sessoes.map(s => {
+          if (s.id !== sessaoId) return s
+          const hasReg = s.registros.some(r => r.exercicioId === exId)
+          const registros = hasReg
+            ? s.registros.map(r => r.exercicioId === exId ? { ...r, series: [...r.series, ...novas] } : r)
+            : [...s.registros, { exercicioId: exId, series: novas }]
+          return { ...s, registros }
+        }),
+      }
+    })
+
+    saveTreinos(updated)
+    setTreinos(updated)
     resetForm()
   }
 
@@ -93,11 +98,23 @@ export default function Sessao() {
   }
 
   function deleteSerie(exId: string, serieId: string) {
-    const reg = sessao!.registros.find(r => r.exercicioId === exId)
-    if (!reg) return
-
-    reg.series = reg.series.filter(s => s.id !== serieId)
-    save()
+    const updated = treinos.map(t => {
+      if (t.id !== id) return t
+      return {
+        ...t,
+        sessoes: t.sessoes.map(s => {
+          if (s.id !== sessaoId) return s
+          return {
+            ...s,
+            registros: s.registros.map(r =>
+              r.exercicioId === exId ? { ...r, series: r.series.filter(sr => sr.id !== serieId) } : r
+            ),
+          }
+        }),
+      }
+    })
+    saveTreinos(updated)
+    setTreinos(updated)
   }
 
   const totalSeries = sessao.registros.reduce((n, r) => n + r.series.length, 0)
