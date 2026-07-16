@@ -9,6 +9,7 @@ type WeekStat = {
   cargaMax: number
   totalReps: number
   totalSeries: number
+  e1RM: number
 }
 
 type ExStat = {
@@ -147,7 +148,7 @@ export default function Evolucao() {
 
   function weekStats(semana: number): WeekStat {
     const sess = treino!.sessoes.filter(s => s.semana === semana)
-    let volume = 0, cargaMax = 0, totalReps = 0, totalSeries = 0
+    let volume = 0, cargaMax = 0, totalReps = 0, totalSeries = 0, e1RM = 0
     for (const s of sess) {
       for (const reg of s.registros) {
         for (const sr of reg.series) {
@@ -155,10 +156,12 @@ export default function Evolucao() {
           if (sr.carga > cargaMax) cargaMax = sr.carga
           totalReps += sr.reps
           totalSeries++
+          const est = epley(sr.carga, sr.reps)
+          if (est > e1RM) e1RM = est
         }
       }
     }
-    return { semana, volume, cargaMax, totalReps, totalSeries }
+    return { semana, volume, cargaMax, totalReps, totalSeries, e1RM }
   }
 
   const weekData = semanas.map(weekStats)
@@ -204,50 +207,52 @@ export default function Evolucao() {
 
       <main className="flex-1 px-4 py-4 space-y-5">
 
-        {/* Cards de resumo */}
+        {/* Cards de resumo — foco em intensidade */}
         <div className="grid grid-cols-2 gap-3">
+          {/* e1RM — métrica principal de força */}
           <div className="bg-[#1a1a1a] border border-white/8 rounded-2xl p-4 col-span-2">
-            <p className="text-xs text-white/40 mb-1">Volume total acumulado</p>
-            <p className="text-3xl font-bold text-white">{fmt(totalVolume)}<span className="text-sm font-normal text-white/40 ml-1">kg·reps</span></p>
+            <p className="text-xs text-white/40 mb-1">1RM estimado (melhor)</p>
+            <p className="text-3xl font-bold text-white">{Math.round(last.e1RM)}<span className="text-sm font-normal text-white/40 ml-1">kg</span></p>
             {semanas.length >= 2 && (
               <div className="mt-1 flex items-center gap-1.5">
-                <Trend val={pct(last.volume, first.volume)} />
+                <Trend val={pct(last.e1RM, first.e1RM)} />
                 <span className="text-xs text-white/30">vs semana {first.semana}</span>
               </div>
             )}
           </div>
           <div className="bg-[#1a1a1a] border border-white/8 rounded-2xl p-4">
-            <p className="text-xs text-white/40 mb-1">Carga máx. atual</p>
+            <p className="text-xs text-white/40 mb-1">Carga máx. levantada</p>
             <p className="text-2xl font-bold text-white">{last.cargaMax}<span className="text-xs font-normal text-white/40 ml-0.5">kg</span></p>
             {semanas.length >= 2 && <div className="mt-1"><Trend val={pct(last.cargaMax, first.cargaMax)} /></div>}
           </div>
           <div className="bg-[#1a1a1a] border border-white/8 rounded-2xl p-4">
-            <p className="text-xs text-white/40 mb-1">Total reps</p>
-            <p className="text-2xl font-bold text-white">{fmt(totalReps)}</p>
-            <p className="text-xs text-white/30 mt-1">{totalSeries} séries</p>
+            <p className="text-xs text-white/40 mb-1">Volume</p>
+            <p className="text-2xl font-bold text-white">{fmt(totalVolume)}<span className="text-xs font-normal text-white/40 ml-0.5">kr</span></p>
+            {semanas.length >= 2 && <div className="mt-1"><Trend val={pct(last.volume, first.volume)} /></div>}
           </div>
         </div>
 
-        {/* Gráfico volume por semana */}
+        {/* Gráfico e1RM por semana */}
         <div className="bg-[#1a1a1a] border border-white/8 rounded-2xl p-4">
-          <p className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">Volume por semana</p>
-          <LineChart semanas={semanas} values={weekData.map(w => w.volume)} id="vol" />
+          <p className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-0.5">Intensidade por semana</p>
+          <p className="text-[10px] text-white/20 mb-3">1RM estimado — normaliza qualquer combinação de carga e reps</p>
+          <LineChart semanas={semanas} values={weekData.map(w => w.e1RM)} id="e1rm" />
 
           <div className="mt-4 space-y-2">
             {weekData.map((w, i) => {
-              const prev = i > 0 ? weekData[i - 1].volume : null
-              const delta = prev !== null ? pct(w.volume, prev) : null
-              const maxVol = Math.max(...weekData.map(d => d.volume))
+              const prev = i > 0 ? weekData[i - 1].e1RM : null
+              const delta = prev !== null ? pct(w.e1RM, prev) : null
+              const maxVal = Math.max(...weekData.map(d => d.e1RM))
               return (
                 <div key={w.semana} className="flex items-center gap-2">
                   <span className="text-white/40 w-10 shrink-0 text-xs">Sem {w.semana}</span>
                   <div className="flex-1 bg-[#252525] rounded-full h-1.5 overflow-hidden">
                     <div
                       className="h-full bg-brand rounded-full transition-all"
-                      style={{ width: `${maxVol ? (w.volume / maxVol) * 100 : 0}%` }}
+                      style={{ width: `${maxVal ? (w.e1RM / maxVal) * 100 : 0}%` }}
                     />
                   </div>
-                  <span className="text-white text-xs font-semibold w-12 text-right shrink-0">{fmt(w.volume)}</span>
+                  <span className="text-white text-xs font-semibold w-14 text-right shrink-0">{Math.round(w.e1RM)}kg</span>
                   <div className="w-14 flex justify-end shrink-0"><Trend val={delta} /></div>
                 </div>
               )
