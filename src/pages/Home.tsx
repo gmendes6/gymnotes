@@ -1,12 +1,16 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Dumbbell, Plus, ChevronRight, Trash2 } from 'lucide-react'
+import { Dumbbell, Plus, ChevronRight, Trash2, Download, Upload } from 'lucide-react'
 import { getTreinos, saveTreinos, uid } from '../store'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 export default function Home() {
   const [treinos, setTreinos] = useState(getTreinos)
   const [nome, setNome] = useState('')
   const [showForm, setShowForm] = useState(false)
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null)
+  const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
   const nav = useNavigate()
 
   function addTreino() {
@@ -22,25 +26,75 @@ export default function Home() {
 
   function deleteTreino(id: string, e: React.MouseEvent) {
     e.stopPropagation()
-    if (!confirm('Excluir este treino?')) return
-    const updated = treinos.filter(t => t.id !== id)
-    saveTreinos(updated)
-    setTreinos(updated)
+    setConfirmDialog({
+      message: 'Excluir este treino e todos os seus dados?',
+      onConfirm: () => {
+        const updated = treinos.filter(t => t.id !== id)
+        saveTreinos(updated)
+        setTreinos(updated)
+      },
+    })
+  }
+
+  function exportar() {
+    const raw = localStorage.getItem('gymnotes_treinos') ?? '[]'
+    const blob = new Blob([raw], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `gymnotes_backup_${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function importar(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target?.result as string)
+        if (!Array.isArray(data)) throw new Error()
+        saveTreinos(data)
+        setTreinos(data)
+        setImportMsg({ ok: true, text: `${data.length} treino${data.length !== 1 ? 's' : ''} importado${data.length !== 1 ? 's' : ''} com sucesso!` })
+      } catch {
+        setImportMsg({ ok: false, text: 'Arquivo inválido. Use um backup exportado pelo GymNotes.' })
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
   }
 
   return (
     <div className="flex flex-col min-h-dvh max-w-md mx-auto">
-      {/* Header */}
       <header className="sticky top-0 z-10 bg-[#0f0f0f]/95 backdrop-blur px-4 pt-safe pb-4 border-b border-white/5">
-        <div className="flex items-center gap-2 mb-1">
-          <Dumbbell size={22} className="text-brand" />
-          <h1 className="text-xl font-bold tracking-tight">GymNotes</h1>
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <Dumbbell size={22} className="text-brand" />
+            <h1 className="text-xl font-bold tracking-tight">GymNotes</h1>
+          </div>
+          <div className="flex items-center gap-1">
+            <button onClick={exportar} title="Exportar backup" className="p-2 text-white/30 hover:text-white/70">
+              <Download size={18} />
+            </button>
+            <button onClick={() => fileRef.current?.click()} title="Importar backup" className="p-2 text-white/30 hover:text-white/70">
+              <Upload size={18} />
+            </button>
+            <input ref={fileRef} type="file" accept=".json" onChange={importar} className="hidden" />
+          </div>
         </div>
         <p className="text-sm text-white/40">{treinos.length} treino{treinos.length !== 1 ? 's' : ''}</p>
       </header>
 
-      {/* Lista */}
       <main className="flex-1 px-4 py-4 space-y-3">
+        {importMsg && (
+          <div className={`rounded-2xl px-4 py-3 text-sm font-medium ${importMsg.ok ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}`}>
+            {importMsg.text}
+            <button onClick={() => setImportMsg(null)} className="ml-3 text-xs opacity-60">✕</button>
+          </div>
+        )}
+
         {treinos.length === 0 && !showForm && (
           <div className="text-center py-20 text-white/30">
             <Dumbbell size={40} className="mx-auto mb-3 opacity-30" />
@@ -72,7 +126,6 @@ export default function Home() {
         ))}
       </main>
 
-      {/* Form novo treino */}
       {showForm && (
         <div className="fixed inset-0 bg-black/60 flex items-end z-50" onClick={() => setShowForm(false)}>
           <div className="w-full max-w-md mx-auto bg-[#1a1a1a] rounded-t-3xl p-6 pb-10" onClick={e => e.stopPropagation()}>
@@ -97,7 +150,15 @@ export default function Home() {
         </div>
       )}
 
-      {/* FAB */}
+      {confirmDialog && (
+        <ConfirmDialog
+          message={confirmDialog.message}
+          onConfirm={() => { confirmDialog.onConfirm(); setConfirmDialog(null) }}
+          onCancel={() => setConfirmDialog(null)}
+          confirmLabel="Excluir"
+        />
+      )}
+
       <button
         onClick={() => setShowForm(true)}
         className="fixed bottom-6 right-1/2 translate-x-1/2 max-w-md w-[calc(100%-2rem)] mx-auto flex items-center justify-center gap-2 bg-brand text-white rounded-2xl py-4 text-sm font-bold shadow-lg shadow-brand/30 active:scale-[.97] transition-transform"
