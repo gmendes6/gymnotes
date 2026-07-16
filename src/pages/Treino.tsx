@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Plus, ChevronRight, ChevronDown, ChevronUp, Trash2, Dumbbell, CalendarDays, Pencil } from 'lucide-react'
 import { getTreinos, saveTreinos, uid } from '../store'
@@ -43,6 +43,18 @@ export default function Treino() {
   const [editEx, setEditEx] = useState<Exercicio | null>(null)
   const [editNome, setEditNome] = useState('')
   const [editDesc, setEditDesc] = useState('')
+
+  // Lock body scroll on iOS when any modal is open
+  useEffect(() => {
+    const open = showSessaoForm || showExForm || !!editSessao || !!editEx
+    if (!open) return
+    const y = window.scrollY
+    document.body.style.cssText = `position:fixed;top:-${y}px;width:100%;overflow:hidden;`
+    return () => {
+      document.body.style.cssText = ''
+      window.scrollTo(0, y)
+    }
+  }, [showSessaoForm, showExForm, editSessao, editEx])
 
   const treino = treinos.find(t => t.id === id)
   if (!treino) { nav('/'); return null }
