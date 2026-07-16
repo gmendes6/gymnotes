@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Dumbbell, Plus, ChevronRight, Trash2, Download, Upload } from 'lucide-react'
+import { Dumbbell, Plus, ChevronRight, Trash2, Copy, ClipboardPaste, Check } from 'lucide-react'
 import { getTreinos, saveTreinos, uid } from '../store'
 import ConfirmDialog from '../components/ConfirmDialog'
 
@@ -8,10 +8,15 @@ export default function Home() {
   const [treinos, setTreinos] = useState(getTreinos)
   const [nome, setNome] = useState('')
   const [showForm, setShowForm] = useState(false)
+  const [showExport, setShowExport] = useState(false)
+  const [showImport, setShowImport] = useState(false)
+  const [importText, setImportText] = useState('')
+  const [importError, setImportError] = useState('')
+  const [copied, setCopied] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null)
-  const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null)
-  const fileRef = useRef<HTMLInputElement>(null)
   const nav = useNavigate()
+
+  const exportData = localStorage.getItem('gymnotes_treinos') ?? '[]'
 
   function addTreino() {
     if (!nome.trim()) return
@@ -36,34 +41,30 @@ export default function Home() {
     })
   }
 
-  function exportar() {
-    const raw = localStorage.getItem('gymnotes_treinos') ?? '[]'
-    const blob = new Blob([raw], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `gymnotes_backup_${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-    URL.revokeObjectURL(url)
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(exportData)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // fallback: seleciona o textarea manualmente
+      const el = document.getElementById('export-textarea') as HTMLTextAreaElement
+      el?.select()
+    }
   }
 
-  function importar(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = ev => {
-      try {
-        const data = JSON.parse(ev.target?.result as string)
-        if (!Array.isArray(data)) throw new Error()
-        saveTreinos(data)
-        setTreinos(data)
-        setImportMsg({ ok: true, text: `${data.length} treino${data.length !== 1 ? 's' : ''} importado${data.length !== 1 ? 's' : ''} com sucesso!` })
-      } catch {
-        setImportMsg({ ok: false, text: 'Arquivo inválido. Use um backup exportado pelo GymNotes.' })
-      }
+  function restaurar() {
+    setImportError('')
+    try {
+      const data = JSON.parse(importText.trim())
+      if (!Array.isArray(data)) throw new Error()
+      saveTreinos(data)
+      setTreinos(data)
+      setShowImport(false)
+      setImportText('')
+    } catch {
+      setImportError('Texto inválido. Cole exatamente o que foi copiado pelo GymNotes.')
     }
-    reader.readAsText(file)
-    e.target.value = ''
   }
 
   return (
@@ -75,26 +76,18 @@ export default function Home() {
             <h1 className="text-xl font-bold tracking-tight">GymNotes</h1>
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={exportar} title="Exportar backup" className="p-2 text-white/30 hover:text-white/70">
-              <Download size={18} />
+            <button onClick={() => setShowExport(true)} title="Backup" className="p-2 text-white/30 hover:text-white/70">
+              <Copy size={17} />
             </button>
-            <button onClick={() => fileRef.current?.click()} title="Importar backup" className="p-2 text-white/30 hover:text-white/70">
-              <Upload size={18} />
+            <button onClick={() => { setShowImport(true); setImportText(''); setImportError('') }} title="Restaurar" className="p-2 text-white/30 hover:text-white/70">
+              <ClipboardPaste size={17} />
             </button>
-            <input ref={fileRef} type="file" accept=".json" onChange={importar} className="hidden" />
           </div>
         </div>
         <p className="text-sm text-white/40">{treinos.length} treino{treinos.length !== 1 ? 's' : ''}</p>
       </header>
 
       <main className="flex-1 px-4 py-4 space-y-3">
-        {importMsg && (
-          <div className={`rounded-2xl px-4 py-3 text-sm font-medium ${importMsg.ok ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}`}>
-            {importMsg.text}
-            <button onClick={() => setImportMsg(null)} className="ml-3 text-xs opacity-60">✕</button>
-          </div>
-        )}
-
         {treinos.length === 0 && !showForm && (
           <div className="text-center py-20 text-white/30">
             <Dumbbell size={40} className="mx-auto mb-3 opacity-30" />
@@ -126,6 +119,70 @@ export default function Home() {
         ))}
       </main>
 
+      {/* Modal Exportar */}
+      {showExport && (
+        <div className="fixed inset-0 bg-black/70 flex items-end z-50" onClick={() => setShowExport(false)}>
+          <div className="w-full max-w-md mx-auto bg-[#1a1a1a] rounded-t-3xl p-6 pb-10 space-y-4" onClick={e => e.stopPropagation()}>
+            <div>
+              <p className="font-bold text-lg">Backup dos dados</p>
+              <p className="text-xs text-white/40 mt-1">Copie o texto abaixo e salve em qualquer lugar (Notes, WhatsApp pra si mesmo, etc). Para restaurar, cole no botão de importar.</p>
+            </div>
+            <textarea
+              id="export-textarea"
+              readOnly
+              value={exportData}
+              rows={5}
+              onClick={e => (e.target as HTMLTextAreaElement).select()}
+              className="w-full bg-[#252525] border border-white/10 rounded-xl px-3 py-3 text-white/60 text-xs outline-none resize-none font-mono"
+            />
+            <div className="flex gap-3">
+              <button onClick={() => setShowExport(false)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 text-sm font-medium">
+                Fechar
+              </button>
+              <button
+                onClick={copiar}
+                className={`flex-1 py-3 rounded-xl text-white text-sm font-bold flex items-center justify-center gap-2 transition-colors ${copied ? 'bg-green-500' : 'bg-brand'}`}
+              >
+                {copied ? <><Check size={15} /> Copiado!</> : <><Copy size={15} /> Copiar tudo</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Importar */}
+      {showImport && (
+        <div className="fixed inset-0 bg-black/70 flex items-end z-50" onClick={() => setShowImport(false)}>
+          <div className="w-full max-w-md mx-auto bg-[#1a1a1a] rounded-t-3xl p-6 pb-10 space-y-4" onClick={e => e.stopPropagation()}>
+            <div>
+              <p className="font-bold text-lg">Restaurar dados</p>
+              <p className="text-xs text-white/40 mt-1">Cole aqui o texto copiado pelo backup.</p>
+            </div>
+            <textarea
+              value={importText}
+              onChange={e => { setImportText(e.target.value); setImportError('') }}
+              placeholder="Cole o backup aqui..."
+              rows={5}
+              className="w-full bg-[#252525] border border-white/10 rounded-xl px-3 py-3 text-white/80 placeholder-white/20 text-xs outline-none focus:border-brand resize-none font-mono"
+            />
+            {importError && <p className="text-xs text-red-400">{importError}</p>}
+            <div className="flex gap-3">
+              <button onClick={() => setShowImport(false)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 text-sm font-medium">
+                Cancelar
+              </button>
+              <button
+                onClick={restaurar}
+                disabled={!importText.trim()}
+                className="flex-1 py-3 rounded-xl bg-brand text-white text-sm font-bold disabled:opacity-30"
+              >
+                Restaurar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Novo treino */}
       {showForm && (
         <div className="fixed inset-0 bg-black/60 flex items-end z-50" onClick={() => setShowForm(false)}>
           <div className="w-full max-w-md mx-auto bg-[#1a1a1a] rounded-t-3xl p-6 pb-10" onClick={e => e.stopPropagation()}>
