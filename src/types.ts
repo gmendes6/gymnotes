@@ -9,7 +9,19 @@ export interface Exercicio {
   id: string
   nome: string
   descricao: string
+}
+
+export interface RegistroExercicio {
+  exercicioId: string
   series: Serie[]
+}
+
+export interface Sessao {
+  id: string
+  semana: number
+  dia: string
+  data: string
+  registros: RegistroExercicio[]
 }
 
 export interface Treino {
@@ -17,4 +29,5 @@ export interface Treino {
   nome: string
   criadoEm: string
   exercicios: Exercicio[]
+  sessoes: Sessao[]
 }

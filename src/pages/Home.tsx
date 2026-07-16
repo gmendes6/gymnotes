@@ -11,7 +11,7 @@ export default function Home() {
 
   function addTreino() {
     if (!nome.trim()) return
-    const novo = { id: uid(), nome: nome.trim(), criadoEm: new Date().toISOString(), exercicios: [] }
+    const novo = { id: uid(), nome: nome.trim(), criadoEm: new Date().toISOString(), exercicios: [], sessoes: [] }
     const updated = [novo, ...treinos]
     saveTreinos(updated)
     setTreinos(updated)
