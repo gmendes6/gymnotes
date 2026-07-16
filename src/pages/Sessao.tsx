@@ -22,8 +22,8 @@ export default function Sessao() {
   const nav = useNavigate()
   const [treinos, setTreinos] = useState(getTreinos)
   const [openEx, setOpenEx] = useState<string | null>(null)
-  const [qtd, setQtd] = useState(3)
-  const [inputs, setInputs] = useState<SerieInput[]>(emptyInputs(3))
+  const [qtd, setQtd] = useState(1)
+  const [inputs, setInputs] = useState<SerieInput[]>(emptyInputs(1))
   const [obs, setObs] = useState('')
   const [mesmaCarga, setMesmaCarga] = useState(false)
   const [cargaUnica, setCargaUnica] = useState('')
@@ -46,8 +46,8 @@ export default function Sessao() {
   }
 
   function resetForm() {
-    setQtd(3)
-    setInputs(emptyInputs(3))
+    setQtd(1)
+    setInputs(emptyInputs(1))
     setObs('')
     setMesmaCarga(false)
     setCargaUnica('')
