@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, Trash2, ChevronDown, ChevronUp, Check } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, ChevronDown, ChevronUp, Check, Pencil, X } from 'lucide-react'
 import { getTreinos, saveTreinos, uid } from '../store'
 import type { Sessao as SessaoType } from '../types'
 
@@ -28,6 +28,7 @@ export default function Sessao() {
   const [mesmaCarga, setMesmaCarga] = useState(false)
   const [cargaUnica, setCargaUnica] = useState('')
   const [cadaLado, setCadaLado] = useState(false)
+  const [editSerie, setEditSerie] = useState<{ exId: string; serieId: string; carga: string; reps: string } | null>(null)
 
   const treino = treinos.find(t => t.id === id)
   const sessao = treino?.sessoes.find(s => s.id === sessaoId)
@@ -117,6 +118,30 @@ export default function Sessao() {
     setTreinos(updated)
   }
 
+  function saveEditSerie() {
+    if (!editSerie || !editSerie.carga || !editSerie.reps) return
+    const updated = treinos.map(t => {
+      if (t.id !== id) return t
+      return {
+        ...t,
+        sessoes: t.sessoes.map(s => {
+          if (s.id !== sessaoId) return s
+          return {
+            ...s,
+            registros: s.registros.map(r =>
+              r.exercicioId === editSerie.exId
+                ? { ...r, series: r.series.map(sr => sr.id === editSerie.serieId ? { ...sr, carga: Number(editSerie.carga), reps: Number(editSerie.reps) } : sr) }
+                : r
+            ),
+          }
+        }),
+      }
+    })
+    saveTreinos(updated)
+    setTreinos(updated)
+    setEditSerie(null)
+  }
+
   const totalSeries = sessao.registros.reduce((n, r) => n + r.series.length, 0)
 
   return (
@@ -162,6 +187,39 @@ export default function Sessao() {
                 <div className="px-4 pt-2 pb-3 space-y-1.5 border-t border-white/5">
                   {series.map((s, si) => {
                     const { cl, text: obsText } = parseCL(s.obs)
+                    const isEditing = editSerie?.serieId === s.id
+
+                    if (isEditing) {
+                      return (
+                        <div key={s.id} className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-brand w-4 shrink-0 text-center">{si + 1}</span>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            value={editSerie!.carga}
+                            onChange={e => setEditSerie(v => v && { ...v, carga: e.target.value })}
+                            placeholder="kg"
+                            className="min-w-0 flex-1 bg-[#252525] border border-brand/50 rounded-lg px-1 py-1.5 text-white text-center text-sm font-bold outline-none focus:border-brand"
+                          />
+                          <span className="text-white/30 text-xs shrink-0">×</span>
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            value={editSerie!.reps}
+                            onChange={e => setEditSerie(v => v && { ...v, reps: e.target.value })}
+                            placeholder="reps"
+                            className="min-w-0 flex-1 bg-[#252525] border border-brand/50 rounded-lg px-1 py-1.5 text-white text-center text-sm font-bold outline-none focus:border-brand"
+                          />
+                          <button onClick={saveEditSerie} className="p-1 text-green-400 shrink-0">
+                            <Check size={14} />
+                          </button>
+                          <button onClick={() => setEditSerie(null)} className="p-1 text-white/20 shrink-0">
+                            <X size={14} />
+                          </button>
+                        </div>
+                      )
+                    }
+
                     return (
                       <div key={s.id} className="flex items-center gap-2">
                         <span className="text-xs font-bold text-brand w-4 shrink-0 text-center">{si + 1}</span>
@@ -171,6 +229,9 @@ export default function Sessao() {
                           <span className="text-white font-semibold text-sm">{s.reps}<span className="text-white/40 text-xs font-normal"> reps</span></span>
                           {obsText && <span className="text-xs text-white/30">{obsText}</span>}
                         </div>
+                        <button onClick={() => setEditSerie({ exId: ex.id, serieId: s.id, carga: String(s.carga), reps: String(s.reps) })} className="p-1 text-white/15 hover:text-white/60 shrink-0">
+                          <Pencil size={12} />
+                        </button>
                         <button onClick={() => deleteSerie(ex.id, s.id)} className="p-1 text-white/15 hover:text-red-400 shrink-0">
                           <Trash2 size={13} />
                         </button>
