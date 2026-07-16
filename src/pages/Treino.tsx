@@ -1,13 +1,20 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, ChevronRight, Trash2, Dumbbell, CalendarDays } from 'lucide-react'
+import { ArrowLeft, Plus, ChevronRight, Trash2, Dumbbell, CalendarDays, Pencil } from 'lucide-react'
 import { getTreinos, saveTreinos, uid } from '../store'
-import type { Sessao } from '../types'
+import type { Sessao, Exercicio } from '../types'
 
 const DIAS_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
 function todayStr() {
   const d = new Date()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${mm}-${dd}`
+}
+
+function isoToDateStr(iso: string) {
+  const d = new Date(iso)
   const mm = String(d.getMonth() + 1).padStart(2, '0')
   const dd = String(d.getDate()).padStart(2, '0')
   return `${d.getFullYear()}-${mm}-${dd}`
@@ -22,6 +29,15 @@ export default function Treino() {
   const [showSessaoForm, setShowSessaoForm] = useState(false)
   const [semana, setSemana] = useState(1)
   const [dataInput, setDataInput] = useState(todayStr)
+
+  // edit sessão
+  const [editSessao, setEditSessao] = useState<Sessao | null>(null)
+  const [editSemana, setEditSemana] = useState(1)
+  const [editData, setEditData] = useState('')
+
+  // edit exercício
+  const [editEx, setEditEx] = useState<Exercicio | null>(null)
+  const [editNome, setEditNome] = useState('')
 
   const treino = treinos.find(t => t.id === id)
   if (!treino) { nav('/'); return null }
@@ -46,6 +62,21 @@ export default function Treino() {
     save()
   }
 
+  function openEditEx(ex: Exercicio, e: React.MouseEvent) {
+    e.stopPropagation()
+    setEditEx(ex)
+    setEditNome(ex.nome)
+  }
+
+  function saveEditEx() {
+    if (!editNome.trim() || !editEx) return
+    treino!.exercicios = treino!.exercicios.map(e =>
+      e.id === editEx.id ? { ...e, nome: editNome.trim() } : e
+    )
+    save()
+    setEditEx(null)
+  }
+
   function iniciarSessao() {
     const d = new Date(dataInput + 'T12:00:00')
     const nova: Sessao = {
@@ -68,10 +99,27 @@ export default function Treino() {
     save()
   }
 
-  // Próxima semana sugerida
+  function openEditSessao(s: Sessao, e: React.MouseEvent) {
+    e.stopPropagation()
+    setEditSessao(s)
+    setEditSemana(s.semana)
+    setEditData(isoToDateStr(s.data))
+  }
+
+  function saveEditSessao() {
+    if (!editSessao) return
+    const d = new Date(editData + 'T12:00:00')
+    treino!.sessoes = treino!.sessoes.map(s =>
+      s.id === editSessao.id
+        ? { ...s, semana: editSemana, dia: DIAS_SEMANA[d.getDay()], data: d.toISOString() }
+        : s
+    )
+    save()
+    setEditSessao(null)
+  }
+
   const maxSemana = treino.sessoes.reduce((m, s) => Math.max(m, s.semana), 0)
 
-  // Última carga de cada exercício
   function ultimaCarga(exId: string) {
     for (let i = treino!.sessoes.length - 1; i >= 0; i--) {
       const reg = treino!.sessoes[i].registros.find(r => r.exercicioId === exId)
@@ -138,6 +186,9 @@ export default function Treino() {
                     <p className="font-semibold text-white text-sm truncate">{ex.nome}</p>
                     {ultima && <p className="text-xs text-white/35 mt-0.5">última: {ultima}</p>}
                   </div>
+                  <button onClick={e => openEditEx(ex, e)} className="p-1.5 text-white/15 hover:text-white/60">
+                    <Pencil size={13} />
+                  </button>
                   <button onClick={e => deleteExercicio(ex.id, e)} className="p-1.5 text-white/15 hover:text-red-400">
                     <Trash2 size={14} />
                   </button>
@@ -172,6 +223,9 @@ export default function Treino() {
                     {s.registros.reduce((n, r) => n + r.series.length, 0)} séries registradas
                   </p>
                 </div>
+                <button onClick={e => openEditSessao(s, e)} className="p-1.5 text-white/15 hover:text-white/60">
+                  <Pencil size={13} />
+                </button>
                 <button onClick={e => deleteSessao(s.id, e)} className="p-1.5 text-white/15 hover:text-red-400">
                   <Trash2 size={14} />
                 </button>
@@ -227,6 +281,48 @@ export default function Treino() {
         </div>
       )}
 
+      {/* Modal editar sessão */}
+      {editSessao && (
+        <div className="fixed inset-0 bg-black/60 flex items-end z-50" onClick={() => setEditSessao(null)}>
+          <div className="w-full max-w-md mx-auto bg-[#1a1a1a] rounded-t-3xl p-6 pb-10" onClick={e => e.stopPropagation()}>
+            <p className="font-bold text-lg mb-5">Editar sessão</p>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-white/40 mb-2 block">Semana</label>
+                <div className="flex gap-2 flex-wrap">
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
+                    <button
+                      key={n}
+                      onClick={() => setEditSemana(n)}
+                      className={`w-10 h-10 rounded-xl text-sm font-bold transition-colors ${editSemana === n ? 'bg-brand text-white' : 'bg-[#252525] text-white/50'}`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-white/40 mb-2 block">Data</label>
+                <input
+                  type="date"
+                  value={editData}
+                  onChange={e => setEditData(e.target.value)}
+                  className="w-full bg-[#252525] border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-brand [color-scheme:dark]"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setEditSessao(null)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 text-sm font-medium">
+                Cancelar
+              </button>
+              <button onClick={saveEditSessao} className="flex-1 py-3 rounded-xl bg-brand text-white text-sm font-bold">
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal novo exercício */}
       {showExForm && (
         <div className="fixed inset-0 bg-black/60 flex items-end z-50" onClick={() => setShowExForm(false)}>
@@ -243,6 +339,26 @@ export default function Treino() {
             <div className="flex gap-3 mt-4">
               <button onClick={() => setShowExForm(false)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 text-sm font-medium">Cancelar</button>
               <button onClick={addExercicio} className="flex-1 py-3 rounded-xl bg-brand text-white text-sm font-bold">Adicionar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal editar exercício */}
+      {editEx && (
+        <div className="fixed inset-0 bg-black/60 flex items-end z-50" onClick={() => setEditEx(null)}>
+          <div className="w-full max-w-md mx-auto bg-[#1a1a1a] rounded-t-3xl p-6 pb-10" onClick={e => e.stopPropagation()}>
+            <p className="font-bold text-lg mb-4">Editar exercício</p>
+            <input
+              autoFocus
+              value={editNome}
+              onChange={e => setEditNome(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && saveEditEx()}
+              className="w-full bg-[#252525] border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-brand"
+            />
+            <div className="flex gap-3 mt-4">
+              <button onClick={() => setEditEx(null)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 text-sm font-medium">Cancelar</button>
+              <button onClick={saveEditEx} className="flex-1 py-3 rounded-xl bg-brand text-white text-sm font-bold">Salvar</button>
             </div>
           </div>
         </div>
