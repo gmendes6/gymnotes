@@ -4,7 +4,14 @@ import { ArrowLeft, Plus, ChevronRight, Trash2, Dumbbell, CalendarDays } from 'l
 import { getTreinos, saveTreinos, uid } from '../store'
 import type { Sessao } from '../types'
 
-const DIAS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo']
+const DIAS_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
+
+function todayStr() {
+  const d = new Date()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${mm}-${dd}`
+}
 
 export default function Treino() {
   const { id } = useParams<{ id: string }>()
@@ -14,7 +21,7 @@ export default function Treino() {
   const [showExForm, setShowExForm] = useState(false)
   const [showSessaoForm, setShowSessaoForm] = useState(false)
   const [semana, setSemana] = useState(1)
-  const [dia, setDia] = useState('Segunda')
+  const [dataInput, setDataInput] = useState(todayStr)
 
   const treino = treinos.find(t => t.id === id)
   if (!treino) { nav('/'); return null }
@@ -40,11 +47,12 @@ export default function Treino() {
   }
 
   function iniciarSessao() {
+    const d = new Date(dataInput + 'T12:00:00')
     const nova: Sessao = {
       id: uid(),
       semana,
-      dia,
-      data: new Date().toISOString(),
+      dia: DIAS_SEMANA[d.getDay()],
+      data: d.toISOString(),
       registros: treino!.exercicios.map(ex => ({ exercicioId: ex.id, series: [] })),
     }
     treino!.sessoes = [...treino!.sessoes, nova]
@@ -198,18 +206,13 @@ export default function Treino() {
                 )}
               </div>
               <div>
-                <label className="text-xs text-white/40 mb-2 block">Dia</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {DIAS.map(d => (
-                    <button
-                      key={d}
-                      onClick={() => setDia(d)}
-                      className={`py-2 rounded-xl text-xs font-bold transition-colors ${dia === d ? 'bg-brand text-white' : 'bg-[#252525] text-white/50'}`}
-                    >
-                      {d.slice(0, 3)}
-                    </button>
-                  ))}
-                </div>
+                <label className="text-xs text-white/40 mb-2 block">Data</label>
+                <input
+                  type="date"
+                  value={dataInput}
+                  onChange={e => setDataInput(e.target.value)}
+                  className="w-full bg-[#252525] border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-brand [color-scheme:dark]"
+                />
               </div>
             </div>
             <div className="flex gap-3 mt-6">
@@ -247,7 +250,7 @@ export default function Treino() {
 
       {/* FAB */}
       <button
-        onClick={() => { setSemana(maxSemana + 1); setShowSessaoForm(true) }}
+        onClick={() => { setSemana(maxSemana + 1); setDataInput(todayStr()); setShowSessaoForm(true) }}
         className="fixed bottom-6 right-1/2 translate-x-1/2 max-w-md w-[calc(100%-2rem)] mx-auto flex items-center justify-center gap-2 bg-brand text-white rounded-2xl py-4 text-sm font-bold shadow-lg shadow-brand/30 active:scale-[.97] transition-transform"
       >
         <Plus size={20} />
