@@ -170,44 +170,57 @@ export default function Sessao() {
                       </button>
                     </div>
 
-                    {/* Carga única */}
+                    {/* Modo mesma carga: carga à esquerda, reps à direita */}
                     {mesmaCarga && (
-                      <div>
-                        <p className="text-xs text-white/35 mb-1.5">Carga para todas as séries (kg)</p>
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          value={cargaUnica}
-                          onChange={e => setCargaUnica(e.target.value)}
-                          placeholder="0"
-                          className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-3 py-2.5 text-white text-center font-bold text-lg outline-none focus:border-brand"
-                        />
+                      <div className="flex gap-3 items-stretch">
+                        <div className="flex flex-col items-center gap-1.5">
+                          <p className="text-xs text-white/35">Carga (kg)</p>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            value={cargaUnica}
+                            onChange={e => setCargaUnica(e.target.value)}
+                            placeholder="0"
+                            className="w-20 flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-2 text-white text-center font-bold text-lg outline-none focus:border-brand"
+                          />
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <p className="text-xs text-white/35 text-center">Reps</p>
+                          {inputs.map((row, idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-brand w-4 shrink-0 text-center">{idx + 1}</span>
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                value={row.reps}
+                                onChange={e => setInput(idx, 'reps', e.target.value)}
+                                placeholder="0"
+                                className="min-w-0 flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-1 py-2.5 text-white text-center font-bold text-base outline-none focus:border-brand"
+                              />
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
 
-                    {/* Labels + inputs por série */}
-                    <div className="space-y-2">
-                      {!mesmaCarga && (
-                        <div className="grid gap-2 pl-5" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                          <p className="text-xs text-white/35 text-center">Carga (kg)</p>
-                          <p className="text-xs text-white/35 text-center">Reps</p>
-                        </div>
-                      )}
-                      {mesmaCarga && <p className="text-xs text-white/35 pl-5">Reps por série</p>}
+                    {/* Modo normal: carga + reps por linha */}
+                    {!mesmaCarga && <div className="space-y-2">
+                      <div className="grid gap-2 pl-5" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                        <p className="text-xs text-white/35 text-center">Carga (kg)</p>
+                        <p className="text-xs text-white/35 text-center">Reps</p>
+                      </div>
 
                       {inputs.map((row, idx) => (
                         <div key={idx} className="flex items-center gap-2">
                           <span className="text-xs font-bold text-brand w-4 shrink-0 text-center">{idx + 1}</span>
-                          {!mesmaCarga && (
-                            <input
-                              type="number"
-                              inputMode="decimal"
-                              value={row.carga}
-                              onChange={e => setInput(idx, 'carga', e.target.value)}
-                              placeholder="0"
-                              className="min-w-0 flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-1 py-2.5 text-white text-center font-bold text-base outline-none focus:border-brand"
-                            />
-                          )}
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            value={row.carga}
+                            onChange={e => setInput(idx, 'carga', e.target.value)}
+                            placeholder="0"
+                            className="min-w-0 flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-1 py-2.5 text-white text-center font-bold text-base outline-none focus:border-brand"
+                          />
                           <input
                             type="number"
                             inputMode="numeric"
@@ -218,7 +231,7 @@ export default function Sessao() {
                           />
                         </div>
                       ))}
-                    </div>
+                    </div>}
 
                     {/* Obs */}
                     <input
