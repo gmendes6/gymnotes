@@ -190,8 +190,6 @@ export default function Evolucao() {
   const first = weekData[0]
   const last = weekData[weekData.length - 1]
   const totalVolume = weekData.reduce((n, w) => n + w.volume, 0)
-  const totalSeries = weekData.reduce((n, w) => n + w.totalSeries, 0)
-  const totalReps = weekData.reduce((n, w) => n + w.totalReps, 0)
 
   return (
     <div className="flex flex-col min-h-dvh max-w-md mx-auto pb-8">
