@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, ChevronRight, Trash2, Dumbbell, CalendarDays, Pencil } from 'lucide-react'
+import { ArrowLeft, Plus, ChevronRight, ChevronDown, ChevronUp, Trash2, Dumbbell, CalendarDays, Pencil } from 'lucide-react'
 import { getTreinos, saveTreinos, uid } from '../store'
 import type { Sessao, Exercicio } from '../types'
 
@@ -34,6 +34,8 @@ export default function Treino() {
   const [editSessao, setEditSessao] = useState<Sessao | null>(null)
   const [editSemana, setEditSemana] = useState(1)
   const [editData, setEditData] = useState('')
+
+  const [showExercicios, setShowExercicios] = useState(true)
 
   // edit exercício
   const [editEx, setEditEx] = useState<Exercicio | null>(null)
@@ -159,20 +161,23 @@ export default function Treino() {
         {/* Exercícios */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold text-white/40 uppercase tracking-widest">Exercícios</p>
+            <button onClick={() => setShowExercicios(v => !v)} className="flex items-center gap-1.5 text-xs font-semibold text-white/40 uppercase tracking-widest">
+              {showExercicios ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+              Exercícios
+            </button>
             <button onClick={() => setShowExForm(true)} className="text-brand text-xs font-bold flex items-center gap-1">
               <Plus size={13} /> Adicionar
             </button>
           </div>
 
-          {treino.exercicios.length === 0 && (
+          {showExercicios && treino.exercicios.length === 0 && (
             <div className="text-center py-8 text-white/25">
               <Dumbbell size={28} className="mx-auto mb-2 opacity-30" />
               <p className="text-sm">Adicione os exercícios do treino</p>
             </div>
           )}
 
-          <div className="space-y-2">
+          {showExercicios && <div className="space-y-2">
             {treino.exercicios.map((ex, i) => {
               const ultima = ultimaCarga(ex.id)
               return (
@@ -199,7 +204,7 @@ export default function Treino() {
                 </button>
               )
             })}
-          </div>
+          </div>}
         </section>
 
         {/* Histórico de sessões */}
