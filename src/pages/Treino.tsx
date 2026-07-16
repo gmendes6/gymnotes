@@ -38,6 +38,7 @@ export default function Treino() {
   // edit exercício
   const [editEx, setEditEx] = useState<Exercicio | null>(null)
   const [editNome, setEditNome] = useState('')
+  const [editDesc, setEditDesc] = useState('')
 
   const treino = treinos.find(t => t.id === id)
   if (!treino) { nav('/'); return null }
@@ -66,12 +67,13 @@ export default function Treino() {
     e.stopPropagation()
     setEditEx(ex)
     setEditNome(ex.nome)
+    setEditDesc(ex.descricao)
   }
 
   function saveEditEx() {
     if (!editNome.trim() || !editEx) return
     treino!.exercicios = treino!.exercicios.map(e =>
-      e.id === editEx.id ? { ...e, nome: editNome.trim() } : e
+      e.id === editEx.id ? { ...e, nome: editNome.trim(), descricao: editDesc } : e
     )
     save()
     setEditEx(null)
@@ -184,7 +186,8 @@ export default function Treino() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-white text-sm truncate">{ex.nome}</p>
-                    {ultima && <p className="text-xs text-white/35 mt-0.5">última: {ultima}</p>}
+                    {ex.descricao && <p className="text-xs text-white/40 mt-0.5 truncate">{ex.descricao}</p>}
+                    {ultima && <p className={`text-xs mt-0.5 truncate ${ex.descricao ? 'text-white/20' : 'text-white/35'}`}>última: {ultima}</p>}
                   </div>
                   <button onClick={e => openEditEx(ex, e)} className="p-1.5 text-white/15 hover:text-white/60">
                     <Pencil size={13} />
@@ -349,13 +352,22 @@ export default function Treino() {
         <div className="fixed inset-0 bg-black/60 flex items-end z-50" onClick={() => setEditEx(null)}>
           <div className="w-full max-w-md mx-auto bg-[#1a1a1a] rounded-t-3xl p-6 pb-10" onClick={e => e.stopPropagation()}>
             <p className="font-bold text-lg mb-4">Editar exercício</p>
-            <input
-              autoFocus
-              value={editNome}
-              onChange={e => setEditNome(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && saveEditEx()}
-              className="w-full bg-[#252525] border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-brand"
-            />
+            <div className="space-y-3">
+              <input
+                autoFocus
+                value={editNome}
+                onChange={e => setEditNome(e.target.value)}
+                placeholder="Nome do exercício"
+                className="w-full bg-[#252525] border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-brand"
+              />
+              <textarea
+                value={editDesc}
+                onChange={e => setEditDesc(e.target.value)}
+                placeholder="Técnica, observações... (opcional)"
+                rows={3}
+                className="w-full bg-[#252525] border border-white/10 rounded-xl px-4 py-3 text-white/80 placeholder-white/25 text-xs outline-none focus:border-brand resize-none leading-relaxed"
+              />
+            </div>
             <div className="flex gap-3 mt-4">
               <button onClick={() => setEditEx(null)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 text-sm font-medium">Cancelar</button>
               <button onClick={saveEditEx} className="flex-1 py-3 rounded-xl bg-brand text-white text-sm font-bold">Salvar</button>
