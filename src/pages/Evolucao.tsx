@@ -14,7 +14,13 @@ type WeekStat = {
 type ExStat = {
   exId: string
   nome: string
-  weeks: { semana: number; cargaMax: number; totalReps: number; volume: number; series: number }[]
+  weeks: { semana: number; cargaMax: number; totalReps: number; volume: number; series: number; e1RM: number }[]
+}
+
+// Epley: estima 1RM a partir de qualquer combinação carga/reps
+function epley(carga: number, reps: number): number {
+  if (reps === 1) return carga
+  return carga * (1 + reps / 30)
 }
 
 function pct(a: number, b: number): number | null {
@@ -160,7 +166,7 @@ export default function Evolucao() {
   const exStats: ExStat[] = treino.exercicios.map(ex => {
     const weeks = semanas.map(semana => {
       const sess = treino!.sessoes.filter(s => s.semana === semana)
-      let cargaMax = 0, totalReps = 0, volume = 0, series = 0
+      let cargaMax = 0, totalReps = 0, volume = 0, series = 0, e1RM = 0
       for (const s of sess) {
         const reg = s.registros.find(r => r.exercicioId === ex.id)
         if (!reg) continue
@@ -169,9 +175,11 @@ export default function Evolucao() {
           totalReps += sr.reps
           volume += sr.carga * sr.reps
           series++
+          const est = epley(sr.carga, sr.reps)
+          if (est > e1RM) e1RM = est
         }
       }
-      return { semana, cargaMax, totalReps, volume, series }
+      return { semana, cargaMax, totalReps, volume, series, e1RM }
     }).filter(w => w.series > 0)
     return { exId: ex.id, nome: ex.nome, weeks }
   }).filter(e => e.weeks.length > 0)
@@ -257,8 +265,8 @@ export default function Evolucao() {
                 const fw = ex.weeks[0]
                 const lw = ex.weeks[ex.weeks.length - 1]
                 const has2 = ex.weeks.length >= 2
+                const trendE1RM  = has2 ? pct(lw.e1RM,      fw.e1RM)      : null
                 const trendVol   = has2 ? pct(lw.volume,    fw.volume)    : null
-                const trendCarga = has2 ? pct(lw.cargaMax,  fw.cargaMax)  : null
                 const trendReps  = has2 ? pct(lw.totalReps, fw.totalReps) : null
 
                 return (
@@ -271,13 +279,13 @@ export default function Evolucao() {
                         <p className="font-semibold text-white text-sm truncate">{ex.nome}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-xs text-white/35">{ex.weeks.length} sem.</span>
-                          {/* volume como indicador principal — captura carga E reps */}
-                          <Trend val={trendVol} />
+                          {/* e1RM normaliza carga+reps — 1 rep mais pesado OU mais reps mesma carga = progresso */}
+                          <Trend val={trendE1RM} />
                         </div>
                       </div>
                       {has2 && (
                         <div className="w-20 shrink-0">
-                          <SparkLine values={ex.weeks.map(w => w.volume)} />
+                          <SparkLine values={ex.weeks.map(w => w.e1RM)} />
                         </div>
                       )}
                       {isOpen ? <ChevronUp size={16} className="text-white/30 shrink-0" /> : <ChevronDown size={16} className="text-white/30 shrink-0" />}
@@ -286,12 +294,12 @@ export default function Evolucao() {
                     {isOpen && (
                       <div className="border-t border-white/5 px-4 pb-4 pt-3 space-y-4">
 
-                        {/* 3 mini-cards: carga, reps, volume */}
+                        {/* 3 mini-cards: e1RM, reps, volume */}
                         <div className="grid grid-cols-3 gap-2">
                           <div className="bg-[#252525] rounded-xl p-2.5">
-                            <p className="text-[10px] text-white/35 mb-1">Carga máx.</p>
-                            <p className="text-base font-bold text-white leading-none">{lw.cargaMax}<span className="text-[10px] font-normal text-white/40 ml-0.5">kg</span></p>
-                            <div className="mt-1"><Trend val={trendCarga} /></div>
+                            <p className="text-[10px] text-white/35 mb-1">e1RM est.</p>
+                            <p className="text-base font-bold text-white leading-none">{Math.round(lw.e1RM)}<span className="text-[10px] font-normal text-white/40 ml-0.5">kg</span></p>
+                            <div className="mt-1"><Trend val={trendE1RM} /></div>
                           </div>
                           <div className="bg-[#252525] rounded-xl p-2.5">
                             <p className="text-[10px] text-white/35 mb-1">Reps</p>
@@ -305,27 +313,27 @@ export default function Evolucao() {
                           </div>
                         </div>
 
-                        {/* Gráfico de volume (carga × reps) */}
+                        {/* Gráfico de e1RM estimado */}
                         {has2 && (
                           <div>
-                            <p className="text-xs text-white/30 mb-1">Volume por semana (carga × reps)</p>
-                            <LineChart semanas={ex.weeks.map(w => w.semana)} values={ex.weeks.map(w => w.volume)} id={ex.exId} />
+                            <p className="text-xs text-white/30 mb-0.5">1RM estimado por semana</p>
+                            <p className="text-[10px] text-white/20 mb-2">Epley: carga × (1 + reps/30) — normaliza diferentes intensidades</p>
+                            <LineChart semanas={ex.weeks.map(w => w.semana)} values={ex.weeks.map(w => w.e1RM)} id={ex.exId} />
                           </div>
                         )}
 
-                        {/* Tabela: Sem | Carga | Δkg | Reps | Δreps */}
+                        {/* Tabela: Sem | Carga | Reps | e1RM | Δe1RM */}
                         <div>
                           <div className="grid gap-1 text-[10px] text-white/30 mb-1.5 px-1" style={{ gridTemplateColumns: '2rem 1fr 1fr 1fr 1fr' }}>
                             <span>Sem</span>
                             <span className="text-center">Carga</span>
-                            <span className="text-center">Δkg</span>
                             <span className="text-center">Reps</span>
-                            <span className="text-right">Δreps</span>
+                            <span className="text-center">e1RM</span>
+                            <span className="text-right">Δ</span>
                           </div>
                           {ex.weeks.map((w, i) => {
                             const prev = i > 0 ? ex.weeks[i - 1] : null
-                            const dCarga = prev ? pct(w.cargaMax,  prev.cargaMax)  : null
-                            const dReps  = prev ? pct(w.totalReps, prev.totalReps) : null
+                            const dE1RM = prev ? pct(w.e1RM, prev.e1RM) : null
                             return (
                               <div
                                 key={w.semana}
@@ -334,9 +342,9 @@ export default function Evolucao() {
                               >
                                 <span className="text-white/50">{w.semana}</span>
                                 <span className="text-white font-semibold text-center">{w.cargaMax}kg</span>
-                                <div className="flex justify-center"><Trend val={dCarga} /></div>
                                 <span className="text-white/70 text-center">{w.totalReps}</span>
-                                <div className="flex justify-end"><Trend val={dReps} /></div>
+                                <span className="text-white/70 text-center">{Math.round(w.e1RM)}kg</span>
+                                <div className="flex justify-end"><Trend val={dE1RM} /></div>
                               </div>
                             )
                           })}
