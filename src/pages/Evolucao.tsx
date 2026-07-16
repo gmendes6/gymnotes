@@ -256,7 +256,10 @@ export default function Evolucao() {
                 const isOpen = openEx === ex.exId
                 const fw = ex.weeks[0]
                 const lw = ex.weeks[ex.weeks.length - 1]
-                const trendCarga = ex.weeks.length >= 2 ? pct(lw.cargaMax, fw.cargaMax) : null
+                const has2 = ex.weeks.length >= 2
+                const trendVol   = has2 ? pct(lw.volume,    fw.volume)    : null
+                const trendCarga = has2 ? pct(lw.cargaMax,  fw.cargaMax)  : null
+                const trendReps  = has2 ? pct(lw.totalReps, fw.totalReps) : null
 
                 return (
                   <div key={ex.exId} className="bg-[#1a1a1a] border border-white/8 rounded-2xl overflow-hidden">
@@ -268,12 +271,13 @@ export default function Evolucao() {
                         <p className="font-semibold text-white text-sm truncate">{ex.nome}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-xs text-white/35">{ex.weeks.length} sem.</span>
-                          <Trend val={trendCarga} />
+                          {/* volume como indicador principal — captura carga E reps */}
+                          <Trend val={trendVol} />
                         </div>
                       </div>
-                      {ex.weeks.length >= 2 && (
+                      {has2 && (
                         <div className="w-20 shrink-0">
-                          <SparkLine values={ex.weeks.map(w => w.cargaMax)} />
+                          <SparkLine values={ex.weeks.map(w => w.volume)} />
                         </div>
                       )}
                       {isOpen ? <ChevronUp size={16} className="text-white/30 shrink-0" /> : <ChevronDown size={16} className="text-white/30 shrink-0" />}
@@ -282,40 +286,46 @@ export default function Evolucao() {
                     {isOpen && (
                       <div className="border-t border-white/5 px-4 pb-4 pt-3 space-y-4">
 
-                        {/* Mini métricas */}
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="bg-[#252525] rounded-xl p-3">
-                            <p className="text-xs text-white/35 mb-1">Carga máx.</p>
-                            <p className="text-xl font-bold text-white">{lw.cargaMax}<span className="text-xs font-normal text-white/40 ml-0.5">kg</span></p>
-                            <Trend val={trendCarga} />
+                        {/* 3 mini-cards: carga, reps, volume */}
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="bg-[#252525] rounded-xl p-2.5">
+                            <p className="text-[10px] text-white/35 mb-1">Carga máx.</p>
+                            <p className="text-base font-bold text-white leading-none">{lw.cargaMax}<span className="text-[10px] font-normal text-white/40 ml-0.5">kg</span></p>
+                            <div className="mt-1"><Trend val={trendCarga} /></div>
                           </div>
-                          <div className="bg-[#252525] rounded-xl p-3">
-                            <p className="text-xs text-white/35 mb-1">Volume</p>
-                            <p className="text-xl font-bold text-white">{fmt(lw.volume)}<span className="text-xs font-normal text-white/40 ml-0.5">kg·r</span></p>
-                            <Trend val={ex.weeks.length >= 2 ? pct(lw.volume, fw.volume) : null} />
+                          <div className="bg-[#252525] rounded-xl p-2.5">
+                            <p className="text-[10px] text-white/35 mb-1">Reps</p>
+                            <p className="text-base font-bold text-white leading-none">{lw.totalReps}</p>
+                            <div className="mt-1"><Trend val={trendReps} /></div>
+                          </div>
+                          <div className="bg-[#252525] rounded-xl p-2.5">
+                            <p className="text-[10px] text-white/35 mb-1">Volume</p>
+                            <p className="text-base font-bold text-white leading-none">{fmt(lw.volume)}<span className="text-[10px] font-normal text-white/40 ml-0.5">kr</span></p>
+                            <div className="mt-1"><Trend val={trendVol} /></div>
                           </div>
                         </div>
 
-                        {/* Gráfico de carga */}
-                        {ex.weeks.length >= 2 && (
+                        {/* Gráfico de volume (carga × reps) */}
+                        {has2 && (
                           <div>
-                            <p className="text-xs text-white/30 mb-1">Carga máx. por semana</p>
-                            <LineChart semanas={ex.weeks.map(w => w.semana)} values={ex.weeks.map(w => w.cargaMax)} id={ex.exId} />
+                            <p className="text-xs text-white/30 mb-1">Volume por semana (carga × reps)</p>
+                            <LineChart semanas={ex.weeks.map(w => w.semana)} values={ex.weeks.map(w => w.volume)} id={ex.exId} />
                           </div>
                         )}
 
-                        {/* Tabela semana a semana */}
+                        {/* Tabela: Sem | Carga | Δkg | Reps | Δreps */}
                         <div>
                           <div className="grid gap-1 text-[10px] text-white/30 mb-1.5 px-1" style={{ gridTemplateColumns: '2rem 1fr 1fr 1fr 1fr' }}>
                             <span>Sem</span>
                             <span className="text-center">Carga</span>
+                            <span className="text-center">Δkg</span>
                             <span className="text-center">Reps</span>
-                            <span className="text-center">Volume</span>
-                            <span className="text-right">Δ</span>
+                            <span className="text-right">Δreps</span>
                           </div>
                           {ex.weeks.map((w, i) => {
-                            const prev = i > 0 ? ex.weeks[i - 1].cargaMax : null
-                            const delta = prev !== null ? pct(w.cargaMax, prev) : null
+                            const prev = i > 0 ? ex.weeks[i - 1] : null
+                            const dCarga = prev ? pct(w.cargaMax,  prev.cargaMax)  : null
+                            const dReps  = prev ? pct(w.totalReps, prev.totalReps) : null
                             return (
                               <div
                                 key={w.semana}
@@ -324,9 +334,9 @@ export default function Evolucao() {
                               >
                                 <span className="text-white/50">{w.semana}</span>
                                 <span className="text-white font-semibold text-center">{w.cargaMax}kg</span>
+                                <div className="flex justify-center"><Trend val={dCarga} /></div>
                                 <span className="text-white/70 text-center">{w.totalReps}</span>
-                                <span className="text-white/70 text-center">{fmt(w.volume)}</span>
-                                <div className="flex justify-end"><Trend val={delta} /></div>
+                                <div className="flex justify-end"><Trend val={dReps} /></div>
                               </div>
                             )
                           })}
