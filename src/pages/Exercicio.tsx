@@ -49,7 +49,7 @@ export default function Exercicio() {
 
   return (
     <div className="flex flex-col min-h-dvh max-w-md mx-auto pb-8">
-      <header className="sticky top-0 z-10 bg-[#0f0f0f]/95 backdrop-blur px-4 pt-10 pb-4 border-b border-white/5">
+      <header className="sticky top-0 z-10 bg-[#0f0f0f]/95 backdrop-blur px-4 pt-safe pb-4 border-b border-white/5">
         <button onClick={() => nav(`/treino/${id}`)} className="flex items-center gap-1 text-white/50 text-sm mb-3 -ml-1">
           <ArrowLeft size={16} /> {treino.nome}
         </button>
