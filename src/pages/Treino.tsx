@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, ChevronRight, ChevronDown, ChevronUp, Trash2, Dumbbell, CalendarDays, Pencil } from 'lucide-react'
+import { ArrowLeft, Plus, ChevronRight, ChevronDown, ChevronUp, Trash2, Dumbbell, CalendarDays, Pencil, BarChart2 } from 'lucide-react'
 import { getTreinos, saveTreinos, uid } from '../store'
 import type { Sessao, Exercicio } from '../types'
 import ConfirmDialog from '../components/ConfirmDialog'
@@ -174,7 +174,15 @@ export default function Treino() {
         <button onClick={() => nav('/')} className="flex items-center gap-1 text-white/50 text-sm mb-3 -ml-1">
           <ArrowLeft size={16} /> Treinos
         </button>
-        <h1 className="text-xl font-bold leading-tight">{treino.nome}</h1>
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-xl font-bold leading-tight truncate">{treino.nome}</h1>
+          <button
+            onClick={() => nav(`/treino/${id}/evolucao`)}
+            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/8 text-white/60 text-xs font-medium"
+          >
+            <BarChart2 size={13} /> Evolução
+          </button>
+        </div>
         <p className="text-sm text-white/40 mt-0.5">
           {treino.exercicios.length} exercício{treino.exercicios.length !== 1 ? 's' : ''} · {treino.sessoes.length} sess{treino.sessoes.length !== 1 ? 'ões' : 'ão'}
         </p>
