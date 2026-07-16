@@ -266,17 +266,14 @@ export default function Treino() {
             <div className="space-y-4">
               <div>
                 <label className="text-xs text-white/40 mb-2 block">Semana</label>
-                <div className="flex gap-2 flex-wrap">
-                  {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
-                    <button
-                      key={n}
-                      onClick={() => setSemana(n)}
-                      className={`w-10 h-10 rounded-xl text-sm font-bold transition-colors ${semana === n ? 'bg-brand text-white' : 'bg-[#252525] text-white/50'}`}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                </div>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  value={semana}
+                  onChange={e => setSemana(Math.max(1, Number(e.target.value)))}
+                  className="w-full bg-[#252525] border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-brand"
+                />
                 {maxSemana > 0 && semana <= maxSemana && (
                   <p className="text-xs text-brand/70 mt-2">Você já tem sessão na semana {semana}</p>
                 )}
@@ -311,17 +308,14 @@ export default function Treino() {
             <div className="space-y-4">
               <div>
                 <label className="text-xs text-white/40 mb-2 block">Semana</label>
-                <div className="flex gap-2 flex-wrap">
-                  {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
-                    <button
-                      key={n}
-                      onClick={() => setEditSemana(n)}
-                      className={`w-10 h-10 rounded-xl text-sm font-bold transition-colors ${editSemana === n ? 'bg-brand text-white' : 'bg-[#252525] text-white/50'}`}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                </div>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  value={editSemana}
+                  onChange={e => setEditSemana(Math.max(1, Number(e.target.value)))}
+                  className="w-full bg-[#252525] border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-brand"
+                />
               </div>
               <div>
                 <label className="text-xs text-white/40 mb-2 block">Data</label>
