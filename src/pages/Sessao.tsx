@@ -67,8 +67,11 @@ export default function Sessao() {
   }
 
   function addSeries(exId: string) {
-    const reg = sessao!.registros.find(r => r.exercicioId === exId)
-    if (!reg) return
+    let reg = sessao!.registros.find(r => r.exercicioId === exId)
+    if (!reg) {
+      reg = { exercicioId: exId, series: [] }
+      sessao!.registros.push(reg)
+    }
     let novas
     if (mesmaCarga) {
       const valid = inputs.filter(r => r.reps).map(r => ({ id: uid(), carga: Number(cargaUnica), reps: Number(r.reps), obs: buildObs(obs.trim()) }))
@@ -92,6 +95,7 @@ export default function Sessao() {
   function deleteSerie(exId: string, serieId: string) {
     const reg = sessao!.registros.find(r => r.exercicioId === exId)
     if (!reg) return
+
     reg.series = reg.series.filter(s => s.id !== serieId)
     save()
   }
