@@ -25,6 +25,8 @@ export default function Sessao() {
   const [qtd, setQtd] = useState(3)
   const [inputs, setInputs] = useState<SerieInput[]>(emptyInputs(3))
   const [obs, setObs] = useState('')
+  const [mesmaCarga, setMesmaCarga] = useState(false)
+  const [cargaUnica, setCargaUnica] = useState('')
 
   const treino = treinos.find(t => t.id === id)
   const sessao = treino?.sessoes.find(s => s.id === sessaoId)
@@ -48,17 +50,31 @@ export default function Sessao() {
     setQtd(3)
     setInputs(emptyInputs(3))
     setObs('')
+    setMesmaCarga(false)
+    setCargaUnica('')
   }
 
   function addSeries(exId: string) {
-    const valid = inputs.filter(r => r.carga && r.reps)
-    if (valid.length === 0) return
     const reg = sessao!.registros.find(r => r.exercicioId === exId)
     if (!reg) return
-    const novas = valid.map(r => ({ id: uid(), carga: Number(r.carga), reps: Number(r.reps), obs: obs.trim() }))
+    let novas
+    if (mesmaCarga) {
+      const valid = inputs.filter(r => r.reps).map(r => ({ id: uid(), carga: Number(cargaUnica), reps: Number(r.reps), obs: obs.trim() }))
+      if (!cargaUnica || valid.length === 0) return
+      novas = valid
+    } else {
+      const valid = inputs.filter(r => r.carga && r.reps)
+      if (valid.length === 0) return
+      novas = valid.map(r => ({ id: uid(), carga: Number(r.carga), reps: Number(r.reps), obs: obs.trim() }))
+    }
     reg.series = [...reg.series, ...novas]
     save()
     resetForm()
+  }
+
+  function canAdd() {
+    if (mesmaCarga) return !!cargaUnica && inputs.some(r => r.reps)
+    return inputs.some(r => r.carga && r.reps)
   }
 
   function deleteSerie(exId: string, serieId: string) {
@@ -133,54 +149,78 @@ export default function Sessao() {
                   {/* Form */}
                   <div className="bg-[#252525] rounded-xl p-3 space-y-3">
 
-                    {/* Seletor de quantidade */}
-                    <div>
-                      <p className="text-xs text-white/35 mb-2">Qtd de séries</p>
-                      <div className="flex gap-2">
+                    {/* Qtd + mesma carga */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-1.5 flex-1">
                         {[1, 2, 3, 4, 5, 6].map(n => (
                           <button
                             key={n}
                             onClick={() => changeQtd(n)}
-                            className={`w-9 h-9 rounded-xl text-sm font-bold transition-colors ${qtd === n ? 'bg-brand text-white' : 'bg-[#1a1a1a] text-white/40'}`}
+                            className={`flex-1 h-8 rounded-lg text-sm font-bold transition-colors ${qtd === n ? 'bg-brand text-white' : 'bg-[#1a1a1a] text-white/40'}`}
                           >
                             {n}
                           </button>
                         ))}
                       </div>
+                      <button
+                        onClick={() => setMesmaCarga(v => !v)}
+                        className={`shrink-0 px-2.5 h-8 rounded-lg text-xs font-bold border transition-colors ${mesmaCarga ? 'bg-brand/20 border-brand text-brand' : 'border-white/10 text-white/35'}`}
+                      >
+                        = carga
+                      </button>
                     </div>
 
-                    {/* Labels */}
-                    <div className="grid grid-cols-2 gap-2 px-1">
-                      <p className="text-xs text-white/35 text-center">Carga (kg)</p>
-                      <p className="text-xs text-white/35 text-center">Reps</p>
-                    </div>
+                    {/* Carga única */}
+                    {mesmaCarga && (
+                      <div>
+                        <p className="text-xs text-white/35 mb-1.5">Carga para todas as séries (kg)</p>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          value={cargaUnica}
+                          onChange={e => setCargaUnica(e.target.value)}
+                          placeholder="0"
+                          className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-3 py-2.5 text-white text-center font-bold text-lg outline-none focus:border-brand"
+                        />
+                      </div>
+                    )}
 
-                    {/* Inputs por série */}
+                    {/* Labels + inputs por série */}
                     <div className="space-y-2">
+                      {!mesmaCarga && (
+                        <div className="grid gap-2 pl-5" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                          <p className="text-xs text-white/35 text-center">Carga (kg)</p>
+                          <p className="text-xs text-white/35 text-center">Reps</p>
+                        </div>
+                      )}
+                      {mesmaCarga && <p className="text-xs text-white/35 pl-5">Reps por série</p>}
+
                       {inputs.map((row, idx) => (
                         <div key={idx} className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-brand w-4 text-center shrink-0">{idx + 1}</span>
-                          <input
-                            type="number"
-                            inputMode="decimal"
-                            value={row.carga}
-                            onChange={e => setInput(idx, 'carga', e.target.value)}
-                            placeholder="0"
-                            className="flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-2 py-2.5 text-white text-center font-bold text-base outline-none focus:border-brand"
-                          />
+                          <span className="text-xs font-bold text-brand w-4 shrink-0 text-center">{idx + 1}</span>
+                          {!mesmaCarga && (
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              value={row.carga}
+                              onChange={e => setInput(idx, 'carga', e.target.value)}
+                              placeholder="0"
+                              className="min-w-0 flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-1 py-2.5 text-white text-center font-bold text-base outline-none focus:border-brand"
+                            />
+                          )}
                           <input
                             type="number"
                             inputMode="numeric"
                             value={row.reps}
                             onChange={e => setInput(idx, 'reps', e.target.value)}
                             placeholder="0"
-                            className="flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-2 py-2.5 text-white text-center font-bold text-base outline-none focus:border-brand"
+                            className="min-w-0 flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-1 py-2.5 text-white text-center font-bold text-base outline-none focus:border-brand"
                           />
                         </div>
                       ))}
                     </div>
 
-                    {/* Obs compartilhada */}
+                    {/* Obs */}
                     <input
                       value={obs}
                       onChange={e => setObs(e.target.value)}
@@ -190,10 +230,10 @@ export default function Sessao() {
 
                     <button
                       onClick={() => addSeries(ex.id)}
-                      disabled={inputs.every(r => !r.carga || !r.reps)}
+                      disabled={!canAdd()}
                       className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-brand text-white text-sm font-bold disabled:opacity-30"
                     >
-                      <Plus size={15} /> Adicionar {inputs.filter(r => r.carga && r.reps).length || qtd} série{qtd !== 1 ? 's' : ''}
+                      <Plus size={15} /> Adicionar {qtd} série{qtd !== 1 ? 's' : ''}
                     </button>
                   </div>
                 </div>
