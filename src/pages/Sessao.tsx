@@ -137,6 +137,8 @@ export default function Sessao() {
 
           return (
             <div key={ex.id} className="bg-[#1a1a1a] border border-white/8 rounded-2xl overflow-hidden">
+
+              {/* Header — clica pra abrir/fechar formulário */}
               <button
                 onClick={() => { setOpenEx(isOpen ? null : ex.id); resetForm() }}
                 className="w-full flex items-center gap-3 px-4 py-4 text-left"
@@ -155,120 +157,116 @@ export default function Sessao() {
                 {isOpen ? <ChevronUp size={16} className="text-white/30 shrink-0" /> : <ChevronDown size={16} className="text-white/30 shrink-0" />}
               </button>
 
+              {/* Séries registradas — sempre visíveis */}
+              {series.length > 0 && (
+                <div className="px-4 pt-2 pb-3 space-y-1.5 border-t border-white/5">
+                  {series.map((s, si) => {
+                    const { cl, text: obsText } = parseCL(s.obs)
+                    return (
+                      <div key={s.id} className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-brand w-4 shrink-0 text-center">{si + 1}</span>
+                        <div className="flex-1 flex items-baseline gap-2">
+                          <span className="text-white font-semibold text-sm">{s.carga}<span className="text-white/40 text-xs font-normal">{cl ? 'kg/lado' : 'kg'}</span></span>
+                          <span className="text-white/30 text-xs">×</span>
+                          <span className="text-white font-semibold text-sm">{s.reps}<span className="text-white/40 text-xs font-normal"> reps</span></span>
+                          {obsText && <span className="text-xs text-white/30">{obsText}</span>}
+                        </div>
+                        <button onClick={() => deleteSerie(ex.id, s.id)} className="p-1 text-white/15 hover:text-red-400 shrink-0">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Formulário de registro — só quando aberto */}
               {isOpen && (
                 <div className="px-4 pb-4 space-y-3 border-t border-white/5 pt-3">
 
-                  {/* Séries já registradas */}
-                  {series.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs text-white/30 uppercase tracking-widest font-semibold">Registradas</p>
-                      {series.map((s, si) => {
-                        const { cl, text: obsText } = parseCL(s.obs)
-                        return (
-                          <div key={s.id} className="flex items-center gap-3">
-                            <span className="text-xs font-bold text-brand w-4 text-center">{si + 1}</span>
-                            <div className="flex-1 flex items-baseline gap-2 flex-wrap">
-                              <span className="text-white font-bold">{s.carga}<span className="text-white/40 text-xs">{cl ? 'kg/lado' : 'kg'}</span></span>
-                              <span className="text-white/30 text-xs">×</span>
-                              <span className="text-white font-bold">{s.reps}<span className="text-white/40 text-xs"> reps</span></span>
-                              {obsText && <span className="text-xs text-white/30">{obsText}</span>}
-                            </div>
-                            <button onClick={() => deleteSerie(ex.id, s.id)} className="p-1 text-white/15 hover:text-red-400">
-                              <Trash2 size={13} />
-                            </button>
+                  {/* Qtd séries + = carga */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1.5 flex-1">
+                      {[1, 2, 3, 4, 5, 6].map(n => (
+                        <button
+                          key={n}
+                          onClick={() => changeQtd(n)}
+                          className={`flex-1 h-8 rounded-lg text-sm font-bold transition-colors ${qtd === n ? 'bg-brand text-white' : 'bg-[#1a1a1a] text-white/40'}`}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setMesmaCarga(v => !v)}
+                      className={`shrink-0 px-2.5 h-8 rounded-lg text-xs font-bold border transition-colors ${mesmaCarga ? 'bg-brand/20 border-brand text-brand' : 'border-white/10 text-white/35'}`}
+                    >
+                      = carga
+                    </button>
+                  </div>
+
+                  {/* Modo mesma carga */}
+                  {mesmaCarga && (
+                    <div className="flex gap-3 items-start">
+                      <div className="flex flex-col items-center gap-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs text-white/35">Carga (kg)</p>
+                          <button
+                            onClick={() => setCadaLado(v => !v)}
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${cadaLado ? 'bg-brand text-white' : 'bg-white/8 text-white/30'}`}
+                          >CL</button>
+                        </div>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          value={cargaUnica}
+                          onChange={e => setCargaUnica(e.target.value)}
+                          placeholder="0"
+                          className="w-20 bg-[#1a1a1a] border border-white/10 rounded-xl px-2 py-2.5 text-white text-center font-bold text-base outline-none focus:border-brand"
+                        />
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <p className="text-xs text-white/35 text-center">Reps</p>
+                        {inputs.map((row, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-brand w-4 shrink-0 text-center">{idx + 1}</span>
+                            <input
+                              type="number"
+                              inputMode="numeric"
+                              value={row.reps}
+                              onChange={e => setInput(idx, 'reps', e.target.value)}
+                              placeholder="0"
+                              className="min-w-0 flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-1 py-2.5 text-white text-center font-bold text-base outline-none focus:border-brand"
+                            />
                           </div>
-                        )
-                      })}
+                        ))}
+                      </div>
                     </div>
                   )}
 
-                  {/* Form */}
-                  <div className="bg-[#252525] rounded-xl p-3 space-y-3">
-
-                    {/* Qtd + mesma carga */}
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-1.5 flex-1">
-                        {[1, 2, 3, 4, 5, 6].map(n => (
-                          <button
-                            key={n}
-                            onClick={() => changeQtd(n)}
-                            className={`flex-1 h-8 rounded-lg text-sm font-bold transition-colors ${qtd === n ? 'bg-brand text-white' : 'bg-[#1a1a1a] text-white/40'}`}
-                          >
-                            {n}
-                          </button>
-                        ))}
+                  {/* Modo normal: [#] [carga] [CL] [reps] */}
+                  {!mesmaCarga && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 pl-6">
+                        <p className="text-xs text-white/35 text-center flex-1">Carga (kg)</p>
+                        <div className="w-8" />
+                        <p className="text-xs text-white/35 text-center flex-1">Reps</p>
                       </div>
-                      <button
-                        onClick={() => setMesmaCarga(v => !v)}
-                        className={`shrink-0 px-2.5 h-8 rounded-lg text-xs font-bold border transition-colors ${mesmaCarga ? 'bg-brand/20 border-brand text-brand' : 'border-white/10 text-white/35'}`}
-                      >
-                        = carga
-                      </button>
-                    </div>
-
-                    {/* Modo mesma carga: carga à esquerda, reps à direita */}
-                    {mesmaCarga && (
-                      <div className="flex gap-3 items-stretch">
-                        <div className="flex flex-col items-center gap-1.5">
-                          <p className="text-xs text-white/35">Carga (kg)</p>
-                          <div className="relative flex-1 flex">
-                            <input
-                              type="number"
-                              inputMode="decimal"
-                              value={cargaUnica}
-                              onChange={e => setCargaUnica(e.target.value)}
-                              placeholder="0"
-                              className="w-20 flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-2 pb-6 text-white text-center font-bold text-lg outline-none focus:border-brand"
-                            />
-                            <button
-                              onClick={() => setCadaLado(v => !v)}
-                              className={`absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-md text-[10px] font-bold transition-colors ${cadaLado ? 'bg-brand text-white' : 'bg-white/8 text-white/30'}`}
-                            >CL</button>
-                          </div>
-                        </div>
-                        <div className="flex-1 space-y-2">
-                          <p className="text-xs text-white/35 text-center">Reps</p>
-                          {inputs.map((row, idx) => (
-                            <div key={idx} className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-brand w-4 shrink-0 text-center">{idx + 1}</span>
-                              <input
-                                type="number"
-                                inputMode="numeric"
-                                value={row.reps}
-                                onChange={e => setInput(idx, 'reps', e.target.value)}
-                                placeholder="0"
-                                className="min-w-0 flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-1 py-2.5 text-white text-center font-bold text-base outline-none focus:border-brand"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Modo normal: carga + reps por linha */}
-                    {!mesmaCarga && <div className="space-y-2">
-                      <div className="grid gap-2 pl-5" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                        <p className="text-xs text-white/35 text-center">Carga (kg)</p>
-                        <p className="text-xs text-white/35 text-center">Reps</p>
-                      </div>
-
                       {inputs.map((row, idx) => (
                         <div key={idx} className="flex items-center gap-2">
                           <span className="text-xs font-bold text-brand w-4 shrink-0 text-center">{idx + 1}</span>
-                          <div className="relative min-w-0 flex-1">
-                            <input
-                              type="number"
-                              inputMode="decimal"
-                              value={row.carga}
-                              onChange={e => setInput(idx, 'carga', e.target.value)}
-                              placeholder="0"
-                              className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-1 pt-2 pb-5 text-white text-center font-bold text-base outline-none focus:border-brand"
-                            />
-                            <button
-                              onClick={() => setCadaLado(v => !v)}
-                              className={`absolute bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[9px] font-bold transition-colors ${cadaLado ? 'bg-brand text-white' : 'bg-white/8 text-white/25'}`}
-                            >CL</button>
-                          </div>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            value={row.carga}
+                            onChange={e => setInput(idx, 'carga', e.target.value)}
+                            placeholder="0"
+                            className="min-w-0 flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-1 py-2.5 text-white text-center font-bold text-base outline-none focus:border-brand"
+                          />
+                          <button
+                            onClick={() => setCadaLado(v => !v)}
+                            className={`shrink-0 w-8 h-9 rounded-lg text-[10px] font-bold transition-colors ${cadaLado ? 'bg-brand text-white' : 'bg-white/8 text-white/25'}`}
+                          >CL</button>
                           <input
                             type="number"
                             inputMode="numeric"
@@ -279,24 +277,24 @@ export default function Sessao() {
                           />
                         </div>
                       ))}
-                    </div>}
+                    </div>
+                  )}
 
-                    {/* Obs */}
-                    <input
-                      value={obs}
-                      onChange={e => setObs(e.target.value)}
-                      placeholder="Obs (drop set, falha...)"
-                      className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-3 py-2 text-white/80 placeholder-white/20 text-xs outline-none focus:border-brand"
-                    />
+                  {/* Obs */}
+                  <input
+                    value={obs}
+                    onChange={e => setObs(e.target.value)}
+                    placeholder="Obs (drop set, falha...)"
+                    className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-3 py-2 text-white/80 placeholder-white/20 text-xs outline-none focus:border-brand"
+                  />
 
-                    <button
-                      onClick={() => addSeries(ex.id)}
-                      disabled={!canAdd()}
-                      className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-brand text-white text-sm font-bold disabled:opacity-30"
-                    >
-                      <Plus size={15} /> Adicionar {qtd} série{qtd !== 1 ? 's' : ''}
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => addSeries(ex.id)}
+                    disabled={!canAdd()}
+                    className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-brand text-white text-sm font-bold disabled:opacity-30"
+                  >
+                    <Plus size={15} /> Adicionar {qtd} série{qtd !== 1 ? 's' : ''}
+                  </button>
                 </div>
               )}
             </div>
