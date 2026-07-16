@@ -35,7 +35,9 @@ export default function Treino() {
   const [editSemana, setEditSemana] = useState(1)
   const [editData, setEditData] = useState('')
 
-  const [showExercicios, setShowExercicios] = useState(true)
+  const [showExercicios, setShowExercicios] = useState(
+    () => localStorage.getItem(`gymnotes_showEx_${id}`) !== 'false'
+  )
 
   // edit exercício
   const [editEx, setEditEx] = useState<Exercicio | null>(null)
@@ -161,7 +163,7 @@ export default function Treino() {
         {/* Exercícios */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <button onClick={() => setShowExercicios(v => !v)} className="flex items-center gap-1.5 text-xs font-semibold text-white/40 uppercase tracking-widest">
+            <button onClick={() => setShowExercicios(v => { const next = !v; localStorage.setItem(`gymnotes_showEx_${id}`, String(next)); return next })} className="flex items-center gap-1.5 text-xs font-semibold text-white/40 uppercase tracking-widest">
               {showExercicios ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
               Exercícios
             </button>
