@@ -27,6 +27,7 @@ export default function Sessao() {
   const [obs, setObs] = useState('')
   const [mesmaCarga, setMesmaCarga] = useState(false)
   const [cargaUnica, setCargaUnica] = useState('')
+  const [cadaLado, setCadaLado] = useState(false)
 
   const treino = treinos.find(t => t.id === id)
   const sessao = treino?.sessoes.find(s => s.id === sessaoId)
@@ -52,6 +53,17 @@ export default function Sessao() {
     setObs('')
     setMesmaCarga(false)
     setCargaUnica('')
+    setCadaLado(false)
+  }
+
+  function buildObs(userObs: string) {
+    return cadaLado ? 'CL' + (userObs ? '|' + userObs : '') : userObs
+  }
+
+  function parseCL(obsRaw: string) {
+    if (obsRaw.startsWith('CL|')) return { cl: true, text: obsRaw.slice(3) }
+    if (obsRaw === 'CL') return { cl: true, text: '' }
+    return { cl: false, text: obsRaw }
   }
 
   function addSeries(exId: string) {
@@ -59,13 +71,13 @@ export default function Sessao() {
     if (!reg) return
     let novas
     if (mesmaCarga) {
-      const valid = inputs.filter(r => r.reps).map(r => ({ id: uid(), carga: Number(cargaUnica), reps: Number(r.reps), obs: obs.trim() }))
+      const valid = inputs.filter(r => r.reps).map(r => ({ id: uid(), carga: Number(cargaUnica), reps: Number(r.reps), obs: buildObs(obs.trim()) }))
       if (!cargaUnica || valid.length === 0) return
       novas = valid
     } else {
       const valid = inputs.filter(r => r.carga && r.reps)
       if (valid.length === 0) return
-      novas = valid.map(r => ({ id: uid(), carga: Number(r.carga), reps: Number(r.reps), obs: obs.trim() }))
+      novas = valid.map(r => ({ id: uid(), carga: Number(r.carga), reps: Number(r.reps), obs: buildObs(obs.trim()) }))
     }
     reg.series = [...reg.series, ...novas]
     save()
@@ -129,20 +141,23 @@ export default function Sessao() {
                   {series.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-xs text-white/30 uppercase tracking-widest font-semibold">Registradas</p>
-                      {series.map((s, si) => (
-                        <div key={s.id} className="flex items-center gap-3">
-                          <span className="text-xs font-bold text-brand w-4 text-center">{si + 1}</span>
-                          <div className="flex-1 flex items-baseline gap-2">
-                            <span className="text-white font-bold">{s.carga}<span className="text-white/40 text-xs">kg</span></span>
-                            <span className="text-white/30 text-xs">×</span>
-                            <span className="text-white font-bold">{s.reps}<span className="text-white/40 text-xs"> reps</span></span>
-                            {s.obs && <span className="text-xs text-white/30 ml-1">{s.obs}</span>}
+                      {series.map((s, si) => {
+                        const { cl, text: obsText } = parseCL(s.obs)
+                        return (
+                          <div key={s.id} className="flex items-center gap-3">
+                            <span className="text-xs font-bold text-brand w-4 text-center">{si + 1}</span>
+                            <div className="flex-1 flex items-baseline gap-2 flex-wrap">
+                              <span className="text-white font-bold">{s.carga}<span className="text-white/40 text-xs">{cl ? 'kg/lado' : 'kg'}</span></span>
+                              <span className="text-white/30 text-xs">×</span>
+                              <span className="text-white font-bold">{s.reps}<span className="text-white/40 text-xs"> reps</span></span>
+                              {obsText && <span className="text-xs text-white/30">{obsText}</span>}
+                            </div>
+                            <button onClick={() => deleteSerie(ex.id, s.id)} className="p-1 text-white/15 hover:text-red-400">
+                              <Trash2 size={13} />
+                            </button>
                           </div>
-                          <button onClick={() => deleteSerie(ex.id, s.id)} className="p-1 text-white/15 hover:text-red-400">
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
 
@@ -175,14 +190,20 @@ export default function Sessao() {
                       <div className="flex gap-3 items-stretch">
                         <div className="flex flex-col items-center gap-1.5">
                           <p className="text-xs text-white/35">Carga (kg)</p>
-                          <input
-                            type="number"
-                            inputMode="decimal"
-                            value={cargaUnica}
-                            onChange={e => setCargaUnica(e.target.value)}
-                            placeholder="0"
-                            className="w-20 flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-2 text-white text-center font-bold text-lg outline-none focus:border-brand"
-                          />
+                          <div className="relative flex-1 flex">
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              value={cargaUnica}
+                              onChange={e => setCargaUnica(e.target.value)}
+                              placeholder="0"
+                              className="w-20 flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-2 pb-6 text-white text-center font-bold text-lg outline-none focus:border-brand"
+                            />
+                            <button
+                              onClick={() => setCadaLado(v => !v)}
+                              className={`absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-md text-[10px] font-bold transition-colors ${cadaLado ? 'bg-brand text-white' : 'bg-white/8 text-white/30'}`}
+                            >CL</button>
+                          </div>
                         </div>
                         <div className="flex-1 space-y-2">
                           <p className="text-xs text-white/35 text-center">Reps</p>
@@ -213,14 +234,20 @@ export default function Sessao() {
                       {inputs.map((row, idx) => (
                         <div key={idx} className="flex items-center gap-2">
                           <span className="text-xs font-bold text-brand w-4 shrink-0 text-center">{idx + 1}</span>
-                          <input
-                            type="number"
-                            inputMode="decimal"
-                            value={row.carga}
-                            onChange={e => setInput(idx, 'carga', e.target.value)}
-                            placeholder="0"
-                            className="min-w-0 flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-1 py-2.5 text-white text-center font-bold text-base outline-none focus:border-brand"
-                          />
+                          <div className="relative min-w-0 flex-1">
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              value={row.carga}
+                              onChange={e => setInput(idx, 'carga', e.target.value)}
+                              placeholder="0"
+                              className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-1 pt-2 pb-5 text-white text-center font-bold text-base outline-none focus:border-brand"
+                            />
+                            <button
+                              onClick={() => setCadaLado(v => !v)}
+                              className={`absolute bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[9px] font-bold transition-colors ${cadaLado ? 'bg-brand text-white' : 'bg-white/8 text-white/25'}`}
+                            >CL</button>
+                          </div>
                           <input
                             type="number"
                             inputMode="numeric"
