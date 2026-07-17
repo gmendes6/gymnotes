@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Plus, Trash2, ChevronDown, ChevronUp, Check, Pencil, X, Timer, GripVertical } from 'lucide-react'
+import FloatingTimer from '../components/FloatingTimer'
 import { DndContext, closestCenter, MouseSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -210,32 +211,29 @@ export default function Sessao() {
         <button onClick={() => nav(`/treino/${id}`)} className="flex items-center gap-1 text-white/50 text-sm mb-3 -ml-1">
           <ArrowLeft size={16} /> {treino.nome}
         </button>
-        <h1 className="text-xl font-bold">Semana {sessao.semana} · {fmtDia(sessao)}</h1>
-        <p className="text-sm text-white/40 mt-0.5">{totalSeries} série{totalSeries !== 1 ? 's' : ''} registrada{totalSeries !== 1 ? 's' : ''}</p>
-      </header>
-
-      {/* Cronômetro de descanso */}
-      {timerSec !== null && (
-        <div className={`sticky top-[4.5rem] z-10 px-4 py-3 border-b border-white/5 flex items-center gap-3 ${timerSec === 0 ? 'bg-brand/20' : 'bg-[#0f0f0f]/95 backdrop-blur'}`}>
-          <Timer size={15} className={timerSec === 0 ? 'text-brand' : 'text-white/40'} />
-          <span className={`text-xl font-bold tabular-nums w-12 ${timerSec === 0 ? 'text-brand' : 'text-white'}`}>
-            {timerSec === 0 ? 'Vai!' : fmtTimer(timerSec)}
-          </span>
-          <div className="flex gap-1 flex-1">
-            {PRESETS.map(s => (
-              <button
-                key={s}
-                onClick={() => { setTimerDur(s); setTimerSec(s) }}
-                className={`flex-1 h-7 rounded-lg text-[10px] font-bold transition-colors ${timerDur === s && timerSec !== 0 ? 'bg-brand text-white' : 'bg-white/8 text-white/35'}`}
-              >
-                {s < 60 ? `${s}s` : s % 60 === 0 ? `${s / 60}m` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`}
-              </button>
-            ))}
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold">Semana {sessao.semana} · {fmtDia(sessao)}</h1>
+            <p className="text-sm text-white/40 mt-0.5">{totalSeries} série{totalSeries !== 1 ? 's' : ''} registrada{totalSeries !== 1 ? 's' : ''}</p>
           </div>
-          <button onClick={() => setTimerSec(null)} className="text-white/25 hover:text-white/60 shrink-0">
-            <X size={15} />
+          <button
+            onClick={() => { if (timerSec === null) setTimerSec(timerDur) }}
+            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors
+              ${timerSec !== null ? 'bg-brand/15 border-brand/40 text-brand' : 'bg-white/5 border-white/8 text-white/40'}`}
+          >
+            <Timer size={13} />
+            {timerSec !== null && timerSec > 0 ? fmtTimer(timerSec) : timerSec === 0 ? 'Vai!' : 'Timer'}
           </button>
         </div>
+      </header>
+
+      {timerSec !== null && (
+        <FloatingTimer
+          timerSec={timerSec}
+          timerDur={timerDur}
+          onSetTimer={(dur) => { setTimerDur(dur); setTimerSec(dur) }}
+          onClose={() => setTimerSec(null)}
+        />
       )}
 
       <main className="flex-1 px-4 py-4 space-y-3">
