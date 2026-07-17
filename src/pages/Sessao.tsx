@@ -1,8 +1,31 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, Trash2, ChevronDown, ChevronUp, Check, Pencil, X, Timer } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, ChevronDown, ChevronUp, Check, Pencil, X, Timer, GripVertical } from 'lucide-react'
+import { DndContext, closestCenter, MouseSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { getTreinos, saveTreinos, uid } from '../store'
 import type { Sessao as SessaoType } from '../types'
+
+function SortableExWrapper({ id, children }: { id: string; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
+      className="bg-[#1a1a1a] border border-white/8 rounded-2xl overflow-hidden flex"
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="touch-none flex items-start pt-4 pl-2 pr-0.5 text-white/15 cursor-grab active:cursor-grabbing shrink-0"
+      >
+        <GripVertical size={15} />
+      </button>
+      <div className="flex-1 min-w-0">{children}</div>
+    </div>
+  )
+}
 
 function fmtDia(s: SessaoType) {
   const d = new Date(s.data)
@@ -48,9 +71,27 @@ export default function Sessao() {
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
   }
 
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
+  )
+
   const treino = treinos.find(t => t.id === id)
   const sessao = treino?.sessoes.find(s => s.id === sessaoId)
   if (!treino || !sessao) { nav(`/treino/${id}`); return null }
+
+  function handleDragEndEx(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const updated = treinos.map(t => {
+      if (t.id !== id) return t
+      const oldIdx = t.exercicios.findIndex(e => e.id === active.id)
+      const newIdx = t.exercicios.findIndex(e => e.id === over.id)
+      return { ...t, exercicios: arrayMove([...t.exercicios], oldIdx, newIdx) }
+    })
+    saveTreinos(updated)
+    setTreinos(updated)
+  }
 
   function changeQtd(n: number) {
     setQtd(n)
@@ -198,13 +239,15 @@ export default function Sessao() {
       )}
 
       <main className="flex-1 px-4 py-4 space-y-3">
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndEx}>
+          <SortableContext items={treino.exercicios.map(e => e.id)} strategy={verticalListSortingStrategy}>
         {treino.exercicios.map((ex, i) => {
           const reg = sessao.registros.find(r => r.exercicioId === ex.id)
           const series = reg?.series ?? []
           const isOpen = openEx === ex.id
 
           return (
-            <div key={ex.id} className="bg-[#1a1a1a] border border-white/8 rounded-2xl overflow-hidden">
+            <SortableExWrapper key={ex.id} id={ex.id}>
 
               {/* Header — clica pra abrir/fechar formulário */}
               <button
@@ -401,9 +444,11 @@ export default function Sessao() {
                   </button>
                 </div>
               )}
-            </div>
+            </SortableExWrapper>
           )
         })}
+          </SortableContext>
+        </DndContext>
       </main>
     </div>
   )
