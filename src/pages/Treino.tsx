@@ -1,9 +1,53 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, ChevronRight, ChevronDown, ChevronUp, Trash2, Dumbbell, CalendarDays, Pencil, BarChart2, Copy } from 'lucide-react'
+import { ArrowLeft, Plus, ChevronRight, ChevronDown, ChevronUp, Trash2, Dumbbell, CalendarDays, Pencil, BarChart2, Copy, GripVertical } from 'lucide-react'
+import { DndContext, closestCenter, MouseSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { getTreinos, saveTreinos, uid } from '../store'
 import type { Sessao, Exercicio } from '../types'
 import ConfirmDialog from '../components/ConfirmDialog'
+
+type SortableExItemProps = {
+  ex: Exercicio
+  i: number
+  ultima: string | null
+  onNav: () => void
+  onEdit: (e: React.MouseEvent) => void
+  onDelete: (e: React.MouseEvent) => void
+}
+
+function SortableExItem({ ex, i, ultima, onNav, onEdit, onDelete }: SortableExItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ex.id })
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
+      className="flex items-center gap-2 bg-[#1a1a1a] border border-white/8 rounded-2xl px-2 py-3"
+    >
+      <button {...attributes} {...listeners} className="touch-none p-1.5 text-white/15 cursor-grab active:cursor-grabbing shrink-0">
+        <GripVertical size={15} />
+      </button>
+      <button onClick={onNav} className="flex-1 flex items-center gap-3 min-w-0 text-left">
+        <div className="w-7 h-7 rounded-xl bg-brand/15 flex items-center justify-center shrink-0">
+          <span className="text-brand text-xs font-bold">{i + 1}</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-white text-sm truncate">{ex.nome}</p>
+          {ex.descricao && <p className="text-xs text-white/40 mt-0.5 truncate">{ex.descricao}</p>}
+          {ultima && <p className={`text-xs mt-0.5 truncate ${ex.descricao ? 'text-white/20' : 'text-white/35'}`}>última: {ultima}</p>}
+        </div>
+        <ChevronRight size={16} className="text-white/20 shrink-0" />
+      </button>
+      <button onClick={onEdit} className="p-1.5 text-white/15 hover:text-white/60 shrink-0">
+        <Pencil size={13} />
+      </button>
+      <button onClick={onDelete} className="p-1.5 text-white/15 hover:text-red-400 shrink-0">
+        <Trash2 size={14} />
+      </button>
+    </div>
+  )
+}
 
 const DIAS_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
@@ -146,12 +190,17 @@ export default function Treino() {
     setEditSessao(null)
   }
 
-  function moveEx(idx: number, dir: -1 | 1) {
-    const arr = [...treino!.exercicios]
-    const target = idx + dir
-    if (target < 0 || target >= arr.length) return
-    ;[arr[idx], arr[target]] = [arr[target], arr[idx]]
-    treino!.exercicios = arr
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
+  )
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIdx = treino!.exercicios.findIndex(e => e.id === active.id)
+    const newIdx = treino!.exercicios.findIndex(e => e.id === over.id)
+    treino!.exercicios = arrayMove([...treino!.exercicios], oldIdx, newIdx)
     save()
   }
 
@@ -236,42 +285,25 @@ export default function Treino() {
             </div>
           )}
 
-          {showExercicios && <div className="space-y-2">
-            {treino.exercicios.map((ex, i) => {
-              const ultima = ultimaCarga(ex.id)
-              return (
-                <button
-                  key={ex.id}
-                  onClick={() => nav(`/treino/${id}/exercicio/${ex.id}`)}
-                  className="w-full flex items-center gap-3 bg-[#1a1a1a] border border-white/8 rounded-2xl px-4 py-3 text-left active:scale-[.98] transition-transform"
-                >
-                  <div className="w-7 h-7 rounded-xl bg-brand/15 flex items-center justify-center shrink-0">
-                    <span className="text-brand text-xs font-bold">{i + 1}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-white text-sm truncate">{ex.nome}</p>
-                    {ex.descricao && <p className="text-xs text-white/40 mt-0.5 truncate">{ex.descricao}</p>}
-                    {ultima && <p className={`text-xs mt-0.5 truncate ${ex.descricao ? 'text-white/20' : 'text-white/35'}`}>última: {ultima}</p>}
-                  </div>
-                  <div className="flex flex-col gap-0.5 shrink-0">
-                    <button onClick={e => { e.stopPropagation(); moveEx(i, -1) }} disabled={i === 0} className="p-0.5 text-white/15 hover:text-white/60 disabled:opacity-20">
-                      <ChevronUp size={13} />
-                    </button>
-                    <button onClick={e => { e.stopPropagation(); moveEx(i, 1) }} disabled={i === treino.exercicios.length - 1} className="p-0.5 text-white/15 hover:text-white/60 disabled:opacity-20">
-                      <ChevronDown size={13} />
-                    </button>
-                  </div>
-                  <button onClick={e => openEditEx(ex, e)} className="p-1.5 text-white/15 hover:text-white/60">
-                    <Pencil size={13} />
-                  </button>
-                  <button onClick={e => deleteExercicio(ex.id, e)} className="p-1.5 text-white/15 hover:text-red-400">
-                    <Trash2 size={14} />
-                  </button>
-                  <ChevronRight size={16} className="text-white/20 shrink-0" />
-                </button>
-              )
-            })}
-          </div>}
+          {showExercicios && (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={treino.exercicios.map(e => e.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-2">
+                  {treino.exercicios.map((ex, i) => (
+                    <SortableExItem
+                      key={ex.id}
+                      ex={ex}
+                      i={i}
+                      ultima={ultimaCarga(ex.id)}
+                      onNav={() => nav(`/treino/${id}/exercicio/${ex.id}`)}
+                      onEdit={e => openEditEx(ex, e)}
+                      onDelete={e => deleteExercicio(ex.id, e)}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          )}
         </section>
 
         {/* Histórico de sessões */}
