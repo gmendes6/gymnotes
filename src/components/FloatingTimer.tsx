@@ -50,7 +50,7 @@ export default function FloatingTimer({ timerSec, timerDur, running, onSetDur, o
 
   // resize state
   const resizing = useRef(false)
-  const resizeStart = useRef({ x: 0, w: 0 })
+  const resizeStart = useRef({ x: 0, y: 0, w: 0 })
 
   /* ── drag handlers ── */
   function onDragDown(e: React.PointerEvent<HTMLDivElement>) {
@@ -79,7 +79,7 @@ export default function FloatingTimer({ timerSec, timerDur, running, onSetDur, o
   /* ── resize handlers ── */
   function onResizeDown(e: React.PointerEvent<HTMLDivElement>) {
     resizing.current = true
-    resizeStart.current = { x: e.clientY, w: widthRef.current }
+    resizeStart.current = { x: e.clientX, y: e.clientY, w: widthRef.current }
     e.currentTarget.setPointerCapture(e.pointerId)
     e.stopPropagation()
     e.preventDefault()
@@ -87,7 +87,8 @@ export default function FloatingTimer({ timerSec, timerDur, running, onSetDur, o
 
   function onResizeMove(e: React.PointerEvent<HTMLDivElement>) {
     if (!resizing.current) return
-    const next = Math.max(MIN_W, Math.min(MAX_W, resizeStart.current.w + (e.clientY - resizeStart.current.x)))
+    const delta = (e.clientX - resizeStart.current.x) + (e.clientY - resizeStart.current.y)
+    const next = Math.max(MIN_W, Math.min(MAX_W, resizeStart.current.w + delta))
     widthRef.current = next
     setWidth(next)
   }
@@ -152,7 +153,7 @@ export default function FloatingTimer({ timerSec, timerDur, running, onSetDur, o
         onPointerDown={onResizeDown}
         onPointerMove={onResizeMove}
         onPointerUp={onResizeUp}
-        className="absolute bottom-1 right-1 touch-none cursor-ns-resize p-1 text-white/30 active:text-white/70"
+        className="absolute bottom-1 right-1 touch-none cursor-nwse-resize p-1 text-white/30 active:text-white/70"
       >
         <ArrowDownRight size={14} />
       </div>
