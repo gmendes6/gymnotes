@@ -69,11 +69,7 @@ export default function Sessao() {
     return () => clearTimeout(t)
   }, [timerSec, timerRunning])
 
-  function fmtTimer(s: number) {
-    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
-  }
-
-  const sensors = useSensors(
+const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
   )
