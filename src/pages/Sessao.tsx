@@ -54,19 +54,20 @@ export default function Sessao() {
   const [cadaLado, setCadaLado] = useState(false)
   const [editSerie, setEditSerie] = useState<{ exId: string; serieId: string; carga: string; reps: string } | null>(null)
 
-  // Cronômetro de descanso
-  const PRESETS = [60, 90, 120, 180, 300]
+  // Cronômetro flutuante
+  const [showTimer, setShowTimer] = useState(false)
   const [timerDur, setTimerDur] = useState(90)
   const [timerSec, setTimerSec] = useState<number | null>(null)
+  const [timerRunning, setTimerRunning] = useState(false)
 
   useEffect(() => {
-    if (timerSec === null || timerSec <= 0) {
-      if (timerSec === 0) navigator.vibrate?.(600)
+    if (!timerRunning || timerSec === null || timerSec <= 0) {
+      if (timerSec === 0 && timerRunning) { navigator.vibrate?.(600); setTimerRunning(false) }
       return
     }
-    const t = setTimeout(() => setTimerSec(v => (v ?? 1) - 1), 1000)
+    const t = setTimeout(() => setTimerSec(v => (v !== null && v > 0) ? v - 1 : v), 1000)
     return () => clearTimeout(t)
-  }, [timerSec])
+  }, [timerSec, timerRunning])
 
   function fmtTimer(s: number) {
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
@@ -151,7 +152,6 @@ export default function Sessao() {
     saveTreinos(updated)
     setTreinos(updated)
     resetForm()
-    setTimerSec(timerDur)
   }
 
   function canAdd() {
@@ -217,22 +217,25 @@ export default function Sessao() {
             <p className="text-sm text-white/40 mt-0.5">{totalSeries} série{totalSeries !== 1 ? 's' : ''} registrada{totalSeries !== 1 ? 's' : ''}</p>
           </div>
           <button
-            onClick={() => { if (timerSec === null) setTimerSec(timerDur) }}
-            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors
-              ${timerSec !== null ? 'bg-brand/15 border-brand/40 text-brand' : 'bg-white/5 border-white/8 text-white/40'}`}
+            onClick={() => setShowTimer(v => !v)}
+            className={`shrink-0 p-2 rounded-xl border transition-colors
+              ${showTimer ? 'bg-brand/15 border-brand/40 text-brand' : 'bg-white/5 border-white/8 text-white/30'}`}
           >
-            <Timer size={13} />
-            {timerSec !== null && timerSec > 0 ? fmtTimer(timerSec) : timerSec === 0 ? 'Vai!' : 'Timer'}
+            <Timer size={16} />
           </button>
         </div>
       </header>
 
-      {timerSec !== null && (
+      {showTimer && (
         <FloatingTimer
           timerSec={timerSec}
           timerDur={timerDur}
-          onSetTimer={(dur) => { setTimerDur(dur); setTimerSec(dur) }}
-          onClose={() => setTimerSec(null)}
+          running={timerRunning}
+          onSetDur={(dur) => { setTimerDur(dur); setTimerSec(null); setTimerRunning(false) }}
+          onStart={() => { if (timerSec === null || timerSec === 0) setTimerSec(timerDur); setTimerRunning(true) }}
+          onPause={() => setTimerRunning(false)}
+          onReset={() => { setTimerSec(null); setTimerRunning(false) }}
+          onClose={() => { setShowTimer(false); setTimerRunning(false) }}
         />
       )}
 
