@@ -8,6 +8,50 @@ import { getTreinos, saveTreinos, uid } from '../store'
 import type { Sessao, Exercicio } from '../types'
 import ConfirmDialog from '../components/ConfirmDialog'
 
+type SortableSessaoItemProps = {
+  s: Sessao
+  onNav: () => void
+  onDuplicate: (e: React.MouseEvent) => void
+  onEdit: (e: React.MouseEvent) => void
+  onDelete: (e: React.MouseEvent) => void
+  label: string
+  series: number
+}
+
+function SortableSessaoItem({ s, onNav, onDuplicate, onEdit, onDelete, label, series }: SortableSessaoItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: s.id })
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
+      className="flex items-center gap-2 bg-[#1a1a1a] border border-white/8 rounded-2xl px-2 py-3"
+    >
+      <button {...attributes} {...listeners} className="touch-none p-1.5 text-white/15 cursor-grab active:cursor-grabbing shrink-0">
+        <GripVertical size={15} />
+      </button>
+      <button onClick={onNav} className="flex-1 flex items-center gap-3 min-w-0 text-left">
+        <div className="w-7 h-7 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
+          <CalendarDays size={13} className="text-white/40" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-white text-sm">{label}</p>
+          <p className="text-xs text-white/35 mt-0.5">{series} séries registradas</p>
+        </div>
+        <ChevronRight size={16} className="text-white/20 shrink-0" />
+      </button>
+      <button onClick={onDuplicate} title="Duplicar como nova sessão" className="p-1.5 text-white/15 hover:text-white/60">
+        <Copy size={13} />
+      </button>
+      <button onClick={onEdit} className="p-1.5 text-white/15 hover:text-white/60">
+        <Pencil size={13} />
+      </button>
+      <button onClick={onDelete} className="p-1.5 text-white/15 hover:text-red-400">
+        <Trash2 size={14} />
+      </button>
+    </div>
+  )
+}
+
 type SortableExItemProps = {
   ex: Exercicio
   i: number
@@ -157,7 +201,7 @@ export default function Treino() {
       data: d.toISOString(),
       registros: treino!.exercicios.map(ex => ({ exercicioId: ex.id, series: [] })),
     }
-    treino!.sessoes = [...treino!.sessoes, nova]
+    treino!.sessoes = [nova, ...treino!.sessoes]
     save()
     setShowSessaoForm(false)
     nav(`/treino/${id}/sessao/${nova.id}`)
@@ -204,6 +248,15 @@ export default function Treino() {
     save()
   }
 
+  function handleDragEndSessao(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIdx = treino!.sessoes.findIndex(s => s.id === active.id)
+    const newIdx = treino!.sessoes.findIndex(s => s.id === over.id)
+    treino!.sessoes = arrayMove([...treino!.sessoes], oldIdx, newIdx)
+    save()
+  }
+
   function duplicarSessao(s: Sessao, e: React.MouseEvent) {
     e.stopPropagation()
     const d = new Date()
@@ -217,9 +270,8 @@ export default function Treino() {
         series: r.series.map(sr => ({ ...sr, id: uid() })),
       })),
     }
-    treino!.sessoes = [...treino!.sessoes, nova]
+    treino!.sessoes = [nova, ...treino!.sessoes]
     save()
-    nav(`/treino/${id}/sessao/${nova.id}`)
   }
 
   const maxSemana = treino.sessoes.reduce((m, s) => Math.max(m, s.semana), 0)
@@ -234,8 +286,6 @@ export default function Treino() {
     }
     return null
   }
-
-  const sessoesSorted = [...treino.sessoes].sort((a, b) => b.semana - a.semana || b.data.localeCompare(a.data))
 
   function fmtDia(sessao: Sessao) {
     const d = new Date(sessao.data)
@@ -310,39 +360,28 @@ export default function Treino() {
         <section>
           <p className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">Sessões realizadas</p>
 
-          {sessoesSorted.length === 0 && (
+          {treino.sessoes.length === 0 && (
             <p className="text-center text-white/25 text-sm py-6">Nenhuma sessão ainda</p>
           )}
 
-          <div className="space-y-2">
-            {sessoesSorted.map(s => (
-              <button
-                key={s.id}
-                onClick={() => nav(`/treino/${id}/sessao/${s.id}`)}
-                className="w-full flex items-center gap-3 bg-[#1a1a1a] border border-white/8 rounded-2xl px-4 py-3 text-left active:scale-[.98] transition-transform"
-              >
-                <div className="w-7 h-7 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
-                  <CalendarDays size={13} className="text-white/40" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-white text-sm">Semana {s.semana} · {fmtDia(s)}</p>
-                  <p className="text-xs text-white/35 mt-0.5">
-                    {s.registros.reduce((n, r) => n + r.series.length, 0)} séries registradas
-                  </p>
-                </div>
-                <button onClick={e => duplicarSessao(s, e)} title="Duplicar como nova sessão" className="p-1.5 text-white/15 hover:text-white/60">
-                  <Copy size={13} />
-                </button>
-                <button onClick={e => openEditSessao(s, e)} className="p-1.5 text-white/15 hover:text-white/60">
-                  <Pencil size={13} />
-                </button>
-                <button onClick={e => deleteSessao(s.id, e)} className="p-1.5 text-white/15 hover:text-red-400">
-                  <Trash2 size={14} />
-                </button>
-                <ChevronRight size={16} className="text-white/20 shrink-0" />
-              </button>
-            ))}
-          </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndSessao}>
+            <SortableContext items={treino.sessoes.map(s => s.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-2">
+                {treino.sessoes.map(s => (
+                  <SortableSessaoItem
+                    key={s.id}
+                    s={s}
+                    label={`Semana ${s.semana} · ${fmtDia(s)}`}
+                    series={s.registros.reduce((n, r) => n + r.series.length, 0)}
+                    onNav={() => nav(`/treino/${id}/sessao/${s.id}`)}
+                    onDuplicate={e => duplicarSessao(s, e)}
+                    onEdit={e => openEditSessao(s, e)}
+                    onDelete={e => deleteSessao(s.id, e)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         </section>
       </main>
 
