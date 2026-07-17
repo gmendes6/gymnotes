@@ -109,15 +109,19 @@ export default function FloatingTimer({ timerSec, timerDur, running, onSetDur, o
         transform: `scale(${scale})`,
         transformOrigin: 'top left',
       }}
-      onPointerDown={e => { if (!(e.target as HTMLElement).closest('button,[data-resize]')) onDragDown(e) }}
-      onPointerMove={onDragMove}
-      onPointerUp={onDragUp}
-      className={`rounded-2xl border shadow-2xl shadow-black/70 select-none cursor-grab active:cursor-grabbing
+      className={`rounded-2xl border shadow-2xl shadow-black/70 select-none
         ${isZero ? 'bg-brand border-brand/60' : 'bg-[#222] border-white/20'}`}
     >
       {/* Top row */}
       <div className="flex items-center gap-1 px-2 pt-3 pb-2">
-        <GripHorizontal size={14} className="text-white/20 p-0 shrink-0 ml-1" />
+        <div
+          onPointerDown={onDragDown}
+          onPointerMove={onDragMove}
+          onPointerUp={onDragUp}
+          className="touch-none cursor-grab active:cursor-grabbing p-1 shrink-0"
+        >
+          <GripHorizontal size={14} className="text-white/30" />
+        </div>
 
         <span className={`flex-1 text-4xl font-bold tabular-nums tracking-tight text-center
           ${isZero ? 'text-white' : running ? 'text-white' : 'text-white/50'}`}>
