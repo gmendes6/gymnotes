@@ -1,30 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Dumbbell, Plus, ChevronRight, Trash2, Copy, ClipboardPaste, Check, Flame, Pencil } from 'lucide-react'
+import { Dumbbell, Plus, ChevronRight, Trash2, Copy, ClipboardPaste, Check, Pencil } from 'lucide-react'
 import { getTreinos, saveTreinos, uid } from '../store'
 import ConfirmDialog from '../components/ConfirmDialog'
-import type { Sessao } from '../types'
-
-function weekIdx(date: Date): number {
-  return Math.floor(date.getTime() / (7 * 24 * 60 * 60 * 1000))
-}
-
-function sessionsThisWeek(sessoes: Sessao[]): number {
-  const now = weekIdx(new Date())
-  return sessoes.filter(s => weekIdx(new Date(s.data)) === now).length
-}
-
-function calcStreak(sessoes: Sessao[]): number {
-  if (!sessoes.length) return 0
-  const weeks = [...new Set(sessoes.map(s => weekIdx(new Date(s.data))))].sort((a, b) => b - a)
-  if (weeks[0] < weekIdx(new Date()) - 1) return 0
-  let streak = 1
-  for (let i = 1; i < weeks.length; i++) {
-    if (weeks[i - 1] - weeks[i] === 1) streak++
-    else break
-  }
-  return streak
-}
 
 export default function Home() {
   const [treinos, setTreinos] = useState(getTreinos)
@@ -127,10 +105,7 @@ export default function Home() {
           </div>
         )}
 
-        {treinos.map(t => {
-          const streak = calcStreak(t.sessoes)
-          const thisWeek = sessionsThisWeek(t.sessoes)
-          return (
+        {treinos.map(t => (
             <button
               key={t.id}
               onClick={() => nav(`/treino/${t.id}`)}
@@ -138,22 +113,9 @@ export default function Home() {
             >
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-white truncate">{t.nome}</p>
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <span className="text-xs text-white/35">
-                    {t.exercicios.length} ex · {t.sessoes.length} sess{t.sessoes.length !== 1 ? 'ões' : 'ão'}
-                  </span>
-                  {streak > 0 && (
-                    <span className="flex items-center gap-0.5 text-xs font-bold text-orange-400">
-                      <Flame size={11} />
-                      {streak} sem
-                    </span>
-                  )}
-                  {thisWeek > 0 && (
-                    <span className="text-xs font-semibold text-brand/80">
-                      {thisWeek} esta sem
-                    </span>
-                  )}
-                </div>
+                <span className="text-xs text-white/35">
+                  {t.exercicios.length} ex · {t.sessoes.length} sess{t.sessoes.length !== 1 ? 'ões' : 'ão'}
+                </span>
               </div>
               <button
                 onClick={(e) => { e.stopPropagation(); setEditTreino({ id: t.id, nome: t.nome }) }}
@@ -169,8 +131,7 @@ export default function Home() {
               </button>
               <ChevronRight size={18} className="text-white/20 shrink-0" />
             </button>
-          )
-        })}
+        ))}
       </main>
 
       {/* Modal Exportar */}
