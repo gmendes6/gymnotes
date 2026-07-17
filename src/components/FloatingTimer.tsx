@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { GripHorizontal, X, Play, Pause, RotateCcw } from 'lucide-react'
 
-const PRESETS = [60, 90, 120, 180, 300]
+const PRESETS = [120, 150, 180, 240, 300]
 
 type Props = {
   timerSec: number | null
