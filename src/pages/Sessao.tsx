@@ -218,10 +218,10 @@ export default function Sessao() {
           </div>
           <button
             onClick={() => setShowTimer(v => !v)}
-            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors
-              ${showTimer ? 'bg-brand/15 border-brand/40 text-brand' : 'bg-white/8 border-white/10 text-white/60'}`}
+            className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-colors
+              ${showTimer ? 'bg-brand text-white' : 'bg-brand/20 text-brand border border-brand/40'}`}
           >
-            <Timer size={14} />
+            <Timer size={15} />
             Timer
           </button>
         </div>
