@@ -112,40 +112,44 @@ export default function FloatingTimer({ timerSec, timerDur, running, onSetDur, o
       className={`rounded-2xl border shadow-2xl shadow-black/70 select-none
         ${isZero ? 'bg-brand border-brand/60' : 'bg-[#222] border-white/20'}`}
     >
-      {/* Top row */}
-      <div className="flex items-center gap-1 px-2 pt-3 pb-2">
+      {/* Controls row */}
+      <div className="flex items-center justify-between px-2 pt-2 pb-0">
         <div
           onPointerDown={onDragDown}
           onPointerMove={onDragMove}
           onPointerUp={onDragUp}
           className="touch-none cursor-grab active:cursor-grabbing p-1 shrink-0"
         >
-          <GripHorizontal size={14} className="text-white/30" />
+          <GripHorizontal size={11} className="text-white/25" />
         </div>
+        <div className="flex items-center gap-0.5">
+          <button onClick={running ? onPause : onStart}
+            className={`p-1 rounded-md shrink-0 ${running ? 'text-white/60' : 'text-brand'}`}>
+            {running ? <Pause size={12} /> : <Play size={12} />}
+          </button>
+          <button onClick={onReset} className="p-1 text-white/25 rounded-md shrink-0">
+            <RotateCcw size={11} />
+          </button>
+          <button onClick={onClose} className="p-1 text-white/20 rounded-md shrink-0">
+            <X size={11} />
+          </button>
+        </div>
+      </div>
 
-        <span className={`flex-1 text-4xl font-bold tabular-nums tracking-tight text-center
-          ${isZero ? 'text-white' : running ? 'text-white' : 'text-white/50'}`}>
+      {/* Big timer */}
+      <div className="px-2 py-1 text-center">
+        <span className={`text-6xl font-bold tabular-nums tracking-tight leading-none
+          ${isZero ? 'text-white' : running ? 'text-white' : 'text-white/55'}`}>
           {display}
         </span>
-
-        <button onClick={running ? onPause : onStart}
-          className={`p-1.5 rounded-lg shrink-0 ${running ? 'text-white/70' : 'text-brand'}`}>
-          {running ? <Pause size={15} /> : <Play size={15} />}
-        </button>
-        <button onClick={onReset} className="p-1.5 text-white/30 rounded-lg shrink-0">
-          <RotateCcw size={13} />
-        </button>
-        <button onClick={onClose} className="p-1.5 text-white/25 rounded-lg shrink-0">
-          <X size={13} />
-        </button>
       </div>
 
       {/* Presets */}
-      <div className="flex gap-1 px-3 pb-4">
+      <div className="flex gap-1 px-2 pb-3">
         {PRESETS.map(s => (
           <button key={s} onClick={() => onSetDur(s)}
-            className={`flex-1 h-7 rounded-lg text-[9px] font-bold
-              ${timerDur === s ? 'bg-brand text-white' : 'bg-white/10 text-white/50'}`}>
+            className={`flex-1 h-5 rounded text-[8px] font-bold
+              ${timerDur === s ? 'bg-brand text-white' : 'bg-white/10 text-white/40'}`}>
             {presetLabel(s)}
           </button>
         ))}
