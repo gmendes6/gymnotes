@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { GripHorizontal, X, Play, Pause, RotateCcw } from 'lucide-react'
+import { GripHorizontal, X, Play, Pause, RotateCcw, ArrowDownRight } from 'lucide-react'
 
 const PRESETS = [120, 150, 180, 240, 300]
 const MIN_W = 180
@@ -79,7 +79,7 @@ export default function FloatingTimer({ timerSec, timerDur, running, onSetDur, o
   /* ── resize handlers ── */
   function onResizeDown(e: React.PointerEvent<HTMLDivElement>) {
     resizing.current = true
-    resizeStart.current = { x: e.clientX, w: widthRef.current }
+    resizeStart.current = { x: e.clientY, w: widthRef.current }
     e.currentTarget.setPointerCapture(e.pointerId)
     e.stopPropagation()
     e.preventDefault()
@@ -87,7 +87,7 @@ export default function FloatingTimer({ timerSec, timerDur, running, onSetDur, o
 
   function onResizeMove(e: React.PointerEvent<HTMLDivElement>) {
     if (!resizing.current) return
-    const next = Math.max(MIN_W, Math.min(MAX_W, resizeStart.current.w + (e.clientX - resizeStart.current.x)))
+    const next = Math.max(MIN_W, Math.min(MAX_W, resizeStart.current.w + (e.clientY - resizeStart.current.x)))
     widthRef.current = next
     setWidth(next)
   }
@@ -152,11 +152,9 @@ export default function FloatingTimer({ timerSec, timerDur, running, onSetDur, o
         onPointerDown={onResizeDown}
         onPointerMove={onResizeMove}
         onPointerUp={onResizeUp}
-        className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize touch-none flex items-end justify-end pb-1 pr-1"
+        className="absolute bottom-1 right-1 touch-none cursor-ns-resize p-1 text-white/30 active:text-white/70"
       >
-        <svg width="8" height="8" viewBox="0 0 8 8" className="text-white/20">
-          <path d="M8 0L8 8L0 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
+        <ArrowDownRight size={14} />
       </div>
     </div>,
     document.body
