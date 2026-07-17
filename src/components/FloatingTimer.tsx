@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { GripHorizontal, X, Play, Pause, RotateCcw } from 'lucide-react'
 
 const PRESETS = [60, 90, 120, 180, 300]
@@ -25,10 +26,7 @@ function presetLabel(s: number) {
 }
 
 export default function FloatingTimer({ timerSec, timerDur, running, onSetDur, onStart, onPause, onReset, onClose }: Props) {
-  const [pos, setPos] = useState(() => ({
-    x: Math.max(16, window.innerWidth - 208),
-    y: Math.round(window.innerHeight * 0.5),
-  }))
+  const [pos, setPos] = useState({ x: 16, y: 140 })
   const dragging = useRef(false)
   const offset = useRef({ x: 0, y: 0 })
 
@@ -54,45 +52,40 @@ export default function FloatingTimer({ timerSec, timerDur, running, onSetDur, o
   const isZero = timerSec === 0
   const display = timerSec === null ? fmt(timerDur) : isZero ? 'Vai!' : fmt(timerSec)
 
-  return (
+  return createPortal(
     <div
-      style={{ left: pos.x, top: pos.y }}
-      className={`fixed z-50 w-48 rounded-2xl border shadow-2xl shadow-black/60 select-none
-        ${isZero ? 'bg-brand/25 border-brand/50' : 'bg-[#1c1c1c] border-white/12'}`}
+      style={{ position: 'fixed', left: pos.x, top: pos.y, zIndex: 9999 }}
+      className={`w-48 rounded-2xl border shadow-2xl shadow-black/70 select-none
+        ${isZero ? 'bg-brand border-brand/60' : 'bg-[#222] border-white/20'}`}
     >
       {/* Top row */}
       <div className="flex items-center gap-1 px-2 pt-3 pb-2">
-        {/* Grip — único elemento arrastável */}
         <div
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           className="touch-none cursor-grab active:cursor-grabbing p-1 shrink-0"
         >
-          <GripHorizontal size={14} className="text-white/20" />
+          <GripHorizontal size={14} className="text-white/30" />
         </div>
 
-        {/* Tempo */}
         <span className={`flex-1 text-xl font-bold tabular-nums tracking-tight text-center
-          ${isZero ? 'text-brand' : running ? 'text-white' : 'text-white/50'}`}>
+          ${isZero ? 'text-white' : running ? 'text-white' : 'text-white/50'}`}>
           {display}
         </span>
 
-        {/* Play / Pause */}
         <button
           onClick={running ? onPause : onStart}
-          className={`p-1.5 rounded-lg transition-colors ${running ? 'text-white/60 hover:text-white' : 'text-brand hover:text-brand/80'}`}
+          className={`p-1.5 rounded-lg ${running ? 'text-white/70' : 'text-brand'}`}
         >
           {running ? <Pause size={15} /> : <Play size={15} />}
         </button>
 
-        {/* Reset */}
-        <button onClick={onReset} className="p-1.5 text-white/25 hover:text-white/60 rounded-lg">
+        <button onClick={onReset} className="p-1.5 text-white/30 rounded-lg">
           <RotateCcw size={13} />
         </button>
 
-        {/* Fechar */}
-        <button onClick={onClose} className="p-1.5 text-white/20 hover:text-white/60 rounded-lg">
+        <button onClick={onClose} className="p-1.5 text-white/25 rounded-lg">
           <X size={13} />
         </button>
       </div>
@@ -103,13 +96,14 @@ export default function FloatingTimer({ timerSec, timerDur, running, onSetDur, o
           <button
             key={s}
             onClick={() => onSetDur(s)}
-            className={`flex-1 h-7 rounded-lg text-[9px] font-bold transition-colors
-              ${timerDur === s ? 'bg-brand text-white' : 'bg-white/8 text-white/40'}`}
+            className={`flex-1 h-7 rounded-lg text-[9px] font-bold
+              ${timerDur === s ? 'bg-brand text-white' : 'bg-white/10 text-white/50'}`}
           >
             {presetLabel(s)}
           </button>
         ))}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
