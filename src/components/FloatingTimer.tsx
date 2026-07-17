@@ -55,7 +55,7 @@ export default function FloatingTimer({ timerSec, timerDur, running, onSetDur, o
   return createPortal(
     <div
       style={{ position: 'fixed', left: pos.x, top: pos.y, zIndex: 9999 }}
-      className={`w-48 rounded-2xl border shadow-2xl shadow-black/70 select-none
+      className={`w-56 rounded-2xl border shadow-2xl shadow-black/70 select-none
         ${isZero ? 'bg-brand border-brand/60' : 'bg-[#222] border-white/20'}`}
     >
       {/* Top row */}
@@ -69,7 +69,7 @@ export default function FloatingTimer({ timerSec, timerDur, running, onSetDur, o
           <GripHorizontal size={14} className="text-white/30" />
         </div>
 
-        <span className={`flex-1 text-xl font-bold tabular-nums tracking-tight text-center
+        <span className={`flex-1 text-3xl font-bold tabular-nums tracking-tight text-center
           ${isZero ? 'text-white' : running ? 'text-white' : 'text-white/50'}`}>
           {display}
         </span>
