@@ -22,6 +22,7 @@ export interface Sessao {
   dia: string
   data: string
   registros: RegistroExercicio[]
+  nota?: string
 }
 
 export interface Treino {

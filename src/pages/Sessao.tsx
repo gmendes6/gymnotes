@@ -60,6 +60,9 @@ export default function Sessao() {
   const [timerSec, setTimerSec] = useState<number | null>(null)
   const [timerRunning, setTimerRunning] = useState(false)
 
+  // PR flash
+  const [prEx, setPrEx] = useState<string | null>(null)
+
   useEffect(() => {
     if (!timerRunning || timerSec === null || timerSec <= 0) {
       if (timerSec === 0 && timerRunning) { navigator.vibrate?.(600); setTimerRunning(false) }
@@ -77,6 +80,37 @@ const sensors = useSensors(
   const treino = treinos.find(t => t.id === id)
   const sessao = treino?.sessoes.find(s => s.id === sessaoId)
   if (!treino || !sessao) { nav(`/treino/${id}`); return null }
+
+  function epley(carga: number, reps: number) {
+    return reps === 1 ? carga : carga * (1 + reps / 30)
+  }
+
+  function getBestE1RM(exId: string) {
+    let best = 0
+    for (const s of treino!.sessoes) {
+      const reg = s.registros.find(r => r.exercicioId === exId)
+      if (reg) best = Math.max(best, ...reg.series.map(sr => epley(sr.carga, sr.reps)))
+    }
+    return best
+  }
+
+  function getLastSessaoSeries(exId: string) {
+    const outras = treino!.sessoes.filter(s => s.id !== sessaoId)
+    for (let i = outras.length - 1; i >= 0; i--) {
+      const reg = outras[i].registros.find(r => r.exercicioId === exId)
+      if (reg && reg.series.length > 0) return { semana: outras[i].semana, series: reg.series }
+    }
+    return null
+  }
+
+  function saveNota(nota: string) {
+    const updated = treinos.map(t => t.id !== id ? t : {
+      ...t,
+      sessoes: t.sessoes.map(s => s.id !== sessaoId ? s : { ...s, nota })
+    })
+    saveTreinos(updated)
+    setTreinos(updated)
+  }
 
   function handleDragEndEx(event: DragEndEvent) {
     const { active, over } = event
@@ -144,6 +178,13 @@ const sensors = useSensors(
         }),
       }
     })
+
+    const prevBest = getBestE1RM(exId)
+    const newBest = Math.max(...novas.map(sr => epley(sr.carga, sr.reps)))
+    if (newBest > prevBest) {
+      setPrEx(exId)
+      setTimeout(() => setPrEx(null), 3000)
+    }
 
     saveTreinos(updated)
     setTreinos(updated)
@@ -262,7 +303,9 @@ const sensors = useSensors(
                     : <p className="text-xs text-white/35 mt-0.5">{series.length} série{series.length !== 1 ? 's' : ''}</p>
                   }
                 </div>
-                {series.length > 0 && <Check size={14} className="text-green-500 shrink-0" />}
+                {prEx === ex.id
+                  ? <span className="text-[10px] font-black text-yellow-400 bg-yellow-400/15 px-1.5 py-0.5 rounded-lg shrink-0 animate-pulse">PR!</span>
+                  : series.length > 0 ? <Check size={14} className="text-green-500 shrink-0" /> : null}
                 {isOpen ? <ChevronUp size={16} className="text-white/30 shrink-0" /> : <ChevronDown size={16} className="text-white/30 shrink-0" />}
               </button>
 
@@ -328,6 +371,27 @@ const sensors = useSensors(
               {/* Formulário de registro — só quando aberto */}
               {isOpen && (
                 <div className="px-4 pb-4 space-y-3 border-t border-white/5 pt-3">
+
+                  {/* Referência última sessão */}
+                  {(() => {
+                    const last = getLastSessaoSeries(ex.id)
+                    if (!last) return null
+                    return (
+                      <div className="bg-white/4 rounded-xl px-3 py-2.5 space-y-1">
+                        <p className="text-[10px] text-white/30 font-semibold uppercase tracking-wider">Semana {last.semana} anterior</p>
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                          {last.series.map((sr, si) => {
+                            const { cl } = parseCL(sr.obs)
+                            return (
+                              <span key={sr.id} className="text-xs text-white/55">
+                                <span className="text-white/25 text-[10px]">{si + 1}.</span> {sr.carga}{cl ? 'kg/l' : 'kg'} × {sr.reps}
+                              </span>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })()}
 
                   {/* Qtd séries + = carga */}
                   <div className="flex items-center gap-2">
@@ -447,6 +511,18 @@ const sensors = useSensors(
         })}
           </SortableContext>
         </DndContext>
+
+        {/* Nota da sessão */}
+        <div className="mt-4">
+          <p className="text-xs font-semibold text-white/30 uppercase tracking-widest mb-2">Notas da sessão</p>
+          <textarea
+            defaultValue={sessao.nota ?? ''}
+            onBlur={e => saveNota(e.target.value)}
+            placeholder="Como foi o treino? Algo de diferente, dor, energia..."
+            rows={3}
+            className="w-full bg-[#1a1a1a] border border-white/8 rounded-2xl px-4 py-3 text-white/80 placeholder-white/20 text-sm outline-none focus:border-brand resize-none leading-relaxed"
+          />
+        </div>
       </main>
     </div>
   )
