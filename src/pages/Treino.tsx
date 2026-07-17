@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, ChevronRight, ChevronDown, ChevronUp, Trash2, Dumbbell, CalendarDays, Pencil, BarChart2 } from 'lucide-react'
+import { ArrowLeft, Plus, ChevronRight, ChevronDown, ChevronUp, Trash2, Dumbbell, CalendarDays, Pencil, BarChart2, Copy } from 'lucide-react'
 import { getTreinos, saveTreinos, uid } from '../store'
 import type { Sessao, Exercicio } from '../types'
 import ConfirmDialog from '../components/ConfirmDialog'
@@ -146,6 +146,33 @@ export default function Treino() {
     setEditSessao(null)
   }
 
+  function moveEx(idx: number, dir: -1 | 1) {
+    const arr = [...treino!.exercicios]
+    const target = idx + dir
+    if (target < 0 || target >= arr.length) return
+    ;[arr[idx], arr[target]] = [arr[target], arr[idx]]
+    treino!.exercicios = arr
+    save()
+  }
+
+  function duplicarSessao(s: Sessao, e: React.MouseEvent) {
+    e.stopPropagation()
+    const d = new Date()
+    const nova: Sessao = {
+      id: uid(),
+      semana: maxSemana + 1,
+      dia: DIAS_SEMANA[d.getDay()],
+      data: d.toISOString(),
+      registros: s.registros.map(r => ({
+        exercicioId: r.exercicioId,
+        series: r.series.map(sr => ({ ...sr, id: uid() })),
+      })),
+    }
+    treino!.sessoes = [...treino!.sessoes, nova]
+    save()
+    nav(`/treino/${id}/sessao/${nova.id}`)
+  }
+
   const maxSemana = treino.sessoes.reduce((m, s) => Math.max(m, s.semana), 0)
 
   function ultimaCarga(exId: string) {
@@ -226,6 +253,14 @@ export default function Treino() {
                     {ex.descricao && <p className="text-xs text-white/40 mt-0.5 truncate">{ex.descricao}</p>}
                     {ultima && <p className={`text-xs mt-0.5 truncate ${ex.descricao ? 'text-white/20' : 'text-white/35'}`}>última: {ultima}</p>}
                   </div>
+                  <div className="flex flex-col gap-0.5 shrink-0">
+                    <button onClick={e => { e.stopPropagation(); moveEx(i, -1) }} disabled={i === 0} className="p-0.5 text-white/15 hover:text-white/60 disabled:opacity-20">
+                      <ChevronUp size={13} />
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); moveEx(i, 1) }} disabled={i === treino.exercicios.length - 1} className="p-0.5 text-white/15 hover:text-white/60 disabled:opacity-20">
+                      <ChevronDown size={13} />
+                    </button>
+                  </div>
                   <button onClick={e => openEditEx(ex, e)} className="p-1.5 text-white/15 hover:text-white/60">
                     <Pencil size={13} />
                   </button>
@@ -263,6 +298,9 @@ export default function Treino() {
                     {s.registros.reduce((n, r) => n + r.series.length, 0)} séries registradas
                   </p>
                 </div>
+                <button onClick={e => duplicarSessao(s, e)} title="Duplicar como nova sessão" className="p-1.5 text-white/15 hover:text-white/60">
+                  <Copy size={13} />
+                </button>
                 <button onClick={e => openEditSessao(s, e)} className="p-1.5 text-white/15 hover:text-white/60">
                   <Pencil size={13} />
                 </button>

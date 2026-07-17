@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, Trash2, ChevronDown, ChevronUp, Check, Pencil, X } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, ChevronDown, ChevronUp, Check, Pencil, X, Timer } from 'lucide-react'
 import { getTreinos, saveTreinos, uid } from '../store'
 import type { Sessao as SessaoType } from '../types'
 
@@ -29,6 +29,24 @@ export default function Sessao() {
   const [cargaUnica, setCargaUnica] = useState('')
   const [cadaLado, setCadaLado] = useState(false)
   const [editSerie, setEditSerie] = useState<{ exId: string; serieId: string; carga: string; reps: string } | null>(null)
+
+  // Cronômetro de descanso
+  const PRESETS = [60, 90, 120, 180, 300]
+  const [timerDur, setTimerDur] = useState(90)
+  const [timerSec, setTimerSec] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (timerSec === null || timerSec <= 0) {
+      if (timerSec === 0) navigator.vibrate?.(600)
+      return
+    }
+    const t = setTimeout(() => setTimerSec(v => (v ?? 1) - 1), 1000)
+    return () => clearTimeout(t)
+  }, [timerSec])
+
+  function fmtTimer(s: number) {
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+  }
 
   const treino = treinos.find(t => t.id === id)
   const sessao = treino?.sessoes.find(s => s.id === sessaoId)
@@ -91,6 +109,7 @@ export default function Sessao() {
     saveTreinos(updated)
     setTreinos(updated)
     resetForm()
+    setTimerSec(timerDur)
   }
 
   function canAdd() {
@@ -153,6 +172,30 @@ export default function Sessao() {
         <h1 className="text-xl font-bold">Semana {sessao.semana} · {fmtDia(sessao)}</h1>
         <p className="text-sm text-white/40 mt-0.5">{totalSeries} série{totalSeries !== 1 ? 's' : ''} registrada{totalSeries !== 1 ? 's' : ''}</p>
       </header>
+
+      {/* Cronômetro de descanso */}
+      {timerSec !== null && (
+        <div className={`sticky top-[4.5rem] z-10 px-4 py-3 border-b border-white/5 flex items-center gap-3 ${timerSec === 0 ? 'bg-brand/20' : 'bg-[#0f0f0f]/95 backdrop-blur'}`}>
+          <Timer size={15} className={timerSec === 0 ? 'text-brand' : 'text-white/40'} />
+          <span className={`text-xl font-bold tabular-nums w-12 ${timerSec === 0 ? 'text-brand' : 'text-white'}`}>
+            {timerSec === 0 ? 'Vai!' : fmtTimer(timerSec)}
+          </span>
+          <div className="flex gap-1 flex-1">
+            {PRESETS.map(s => (
+              <button
+                key={s}
+                onClick={() => { setTimerDur(s); setTimerSec(s) }}
+                className={`flex-1 h-7 rounded-lg text-[10px] font-bold transition-colors ${timerDur === s && timerSec !== 0 ? 'bg-brand text-white' : 'bg-white/8 text-white/35'}`}
+              >
+                {s < 60 ? `${s}s` : s % 60 === 0 ? `${s / 60}m` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => setTimerSec(null)} className="text-white/25 hover:text-white/60 shrink-0">
+            <X size={15} />
+          </button>
+        </div>
+      )}
 
       <main className="flex-1 px-4 py-4 space-y-3">
         {treino.exercicios.map((ex, i) => {
