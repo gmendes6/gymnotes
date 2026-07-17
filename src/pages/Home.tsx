@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Dumbbell, Plus, ChevronRight, Trash2, Copy, ClipboardPaste, Check, Flame } from 'lucide-react'
+import { Dumbbell, Plus, ChevronRight, Trash2, Copy, ClipboardPaste, Check, Flame, Pencil } from 'lucide-react'
 import { getTreinos, saveTreinos, uid } from '../store'
 import ConfirmDialog from '../components/ConfirmDialog'
 import type { Sessao } from '../types'
@@ -36,6 +36,7 @@ export default function Home() {
   const [importError, setImportError] = useState('')
   const [copied, setCopied] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null)
+  const [editTreino, setEditTreino] = useState<{ id: string; nome: string } | null>(null)
   const nav = useNavigate()
 
   const exportData = localStorage.getItem('gymnotes_treinos') ?? '[]'
@@ -49,6 +50,14 @@ export default function Home() {
     setNome('')
     setShowForm(false)
     nav(`/treino/${novo.id}`)
+  }
+
+  function saveEditTreino() {
+    if (!editTreino || !editTreino.nome.trim()) return
+    const updated = treinos.map(t => t.id === editTreino.id ? { ...t, nome: editTreino.nome.trim() } : t)
+    saveTreinos(updated)
+    setTreinos(updated)
+    setEditTreino(null)
   }
 
   function deleteTreino(id: string, e: React.MouseEvent) {
@@ -147,6 +156,12 @@ export default function Home() {
                 </div>
               </div>
               <button
+                onClick={(e) => { e.stopPropagation(); setEditTreino({ id: t.id, nome: t.nome }) }}
+                className="p-2 rounded-xl text-white/20 hover:text-white/60 transition-colors"
+              >
+                <Pencil size={15} />
+              </button>
+              <button
                 onClick={(e) => deleteTreino(t.id, e)}
                 className="p-2 rounded-xl text-white/20 hover:text-red-400 hover:bg-red-400/10 transition-colors"
               >
@@ -240,6 +255,31 @@ export default function Home() {
               </button>
               <button onClick={addTreino} className="flex-1 py-3 rounded-xl bg-brand text-white text-sm font-bold">
                 Criar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal editar nome */}
+      {editTreino && (
+        <div className="fixed inset-0 bg-black/60 flex items-end z-50" onClick={() => setEditTreino(null)}>
+          <div className="w-full max-w-md mx-auto bg-[#1a1a1a] rounded-t-3xl p-6 pb-10" onClick={e => e.stopPropagation()}>
+            <p className="font-bold text-lg mb-4">Renomear treino</p>
+            <input
+              autoFocus
+              value={editTreino.nome}
+              onChange={e => setEditTreino(v => v && { ...v, nome: e.target.value })}
+              onKeyDown={e => e.key === 'Enter' && saveEditTreino()}
+              placeholder="Nome do treino"
+              className="w-full bg-[#252525] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 text-sm outline-none focus:border-brand"
+            />
+            <div className="flex gap-3 mt-4">
+              <button onClick={() => setEditTreino(null)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 text-sm font-medium">
+                Cancelar
+              </button>
+              <button onClick={saveEditTreino} className="flex-1 py-3 rounded-xl bg-brand text-white text-sm font-bold">
+                Salvar
               </button>
             </div>
           </div>
